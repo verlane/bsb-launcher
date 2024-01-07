@@ -15,18 +15,28 @@
 SetWorkingDir A_ScriptDir
 
 setting := ClassSetting("Settings.json")
-launcher := ClassLauncher(setting)
+if not FileExist("Settings.json") {
+  setting.Set("folders", [
+    [".\commands", 20],
+    [A_StartMenu, 0],
+    [A_StartMenuCommon, 0]
+  ])
+  setting.Save()
+}
 
-launcher.LoadFolder(".\commands", 20)
-launcher.LoadFolder("C:\Users\gosoo\Dropbox\Program Files\putty\Shortcuts", 10)
-launcher.LoadFolder(A_StartMenu)
-launcher.LoadFolder(A_StartMenuCommon)
+launcher := ClassLauncher(setting)
+for index, folderArray in setting.Get("folders") {
+  launcher.LoadFolder(folderArray[1], folderArray[2])
+}
 launcher.LoadExeFileHistories()
 launcher.FilterExeFiles()
+
 
 ^,:: {
   launcher.Show()
 }
+
+#Include .\tmp\PrivateScripts.ahk
 
 HotIfWinActive(launcher.GetWindowTitle())
 Hotkey "Up", KeyPressEvent

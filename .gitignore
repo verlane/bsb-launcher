@@ -1,4 +1,7 @@
 .vscode
 commands
+private
+tmp
+
+*.ahk2
 Settings.json
-Main.ahk2

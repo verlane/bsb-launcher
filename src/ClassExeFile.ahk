@@ -19,11 +19,7 @@ class ClassExeFile {
 
   Run() {
     this.executedAt := FormatTime(A_Now, "yyyyMMddHHmmss")
-    if (this.Ext == "ahk") {
-      Run("C:\Dev\ahkv2\AutoHotkey64.exe " this.FileFullPath)
-    } else {
-      Run(this.FileFullPath)
-    }
+    Run(this.FileFullPath)
   }
 
   Properties() {

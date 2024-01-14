@@ -70,8 +70,12 @@ class ClassLauncher {
     this.keywordEdit.Focus()
   }
 
+  Hide() {
+    this.gui.Hide()
+  }
+
   OnKeywordEditEvent(*) {
-    SetTimer () => this.FilterExeFiles(this.keywordEdit.Value), -100
+    SetTimer () => this.FilterExeFiles(this.keywordEdit.value), -100
   }
 
   Submit(*) {
@@ -82,10 +86,12 @@ class ClassLauncher {
     focusedRowNumber := this.listView.GetNext(0, "F")
     fileFullPath := this.listView.GetText(focusedRowNumber, ClassLauncher.LIST_VIEW_FILE_FULL_PATH_INDEX)
     try {
+      this.Hide()
       exeFile := this.exeFilesMap[fileFullPath]
       exeFile.Run()
       if (!this.exeFileHistoriesMap.Has(fileFullPath)) {
         this.exeFileHistories.InsertAt(1, exeFile)
+        this.exeFileHistories := this.exeFileHistories.Sort("N R", "executedAt")
         this.exeFileHistoriesMap[fileFullPath] := exeFile
       }
       this.setting.Set("exeFileHistories", this.exeFileHistories.Slice(1, 18))
@@ -113,7 +119,7 @@ class ClassLauncher {
       exeFile := this.exeFilesMap[fileFullPath]
       if (RegExMatch(itemName, "i)^([`+`-][0-9]+) Score$", &SubPat)) { ; User selected "Open" from the context menu.
         exeFile.AddScore(SubPat[1])
-        this.FilterExeFiles(this.keywordEdit.Value)
+        this.FilterExeFiles(this.keywordEdit.value)
         baseScore := ClassLauncher.ToIntOrZero(this.setting.Get("exeFiles", fileFullPath, "additionalScore"))
         this.setting.Set("exeFiles", fileFullPath, "additionalScore", baseScore + Integer(SubPat[1]))
         this.setting.Save()
@@ -201,6 +207,7 @@ class ClassLauncher {
       this.exeFiles.Push(exeFile)
       this.exeFilesMap[A_LoopFileFullPath] := exeFile
     }
+    this.exeFiles := this.exeFiles.Sort("N R", "Score")
   }
 
   LoadExeFileHistories() {
@@ -219,28 +226,7 @@ class ClassLauncher {
     }
   }
 
-  FilterExeFiles(needleKeyword := "") {
-    this.listView.Delete()
-
-    try {
-      if (StrLen(needleKeyword) > 1) {
-        result := eval(needleKeyword)
-        this.listView.Add(, result)
-        return
-      }
-    } catch {
-    }
-
-    if (needleKeyword == "" && this.exeFileHistories.Length > 0) {
-      this.exeFileHistories := this.exeFileHistories.Sort("N R", "executedAt")
-      targetExeFiles := this.exeFileHistories
-    } else {
-      this.exeFiles := this.exeFiles.Sort("N R", "Score")
-      targetExeFiles := this.exeFiles
-    }
-
-    ; Gather a list of file names from the selected folder and append them to the ListView:
-    this.listView.Opt("-Redraw")  ; Improve performance by disabling redrawing during load.
+  AddExeFileToListView(targetExeFiles, needleKeyword := "") {
     Loop (targetExeFiles.Length) {
       exeFile := targetExeFiles[A_Index]
       addIt := false
@@ -259,17 +245,34 @@ class ClassLauncher {
         break
       }
     }
+  }
+
+  FilterExeFiles(needleKeyword := "") {
+    this.listView.Delete()
+
+    try {
+      if (StrLen(needleKeyword) > 1) {
+        result := eval(needleKeyword)
+        this.listView.Add(, result)
+        return
+      }
+    } catch {
+    }
+
+    ; Gather a list of file names from the selected folder and append them to the ListView:
+    this.listView.Opt("-Redraw")  ; Improve performance by disabling redrawing during load.
+    if (needleKeyword == "" && this.exeFileHistories.Length > 0) {
+      this.AddExeFileToListView(this.exeFileHistories, needleKeyword)
+    } else {
+      this.AddExeFileToListView(this.exeFiles, needleKeyword)
+    }
 
     this.listView.Opt("+Redraw -Hdr")
     this.listView.ModifyCol(1, "470 Sort")
     this.listView.ModifyCol(2, "30 Center")
     this.listView.ModifyCol(3, "40")
-    this.listView.ModifyCol(4, "60 Integer SortDesc")
-    if (needleKeyword == "" && this.exeFileHistories.Length > 0) {
-      this.listView.ModifyCol(5, "0 SortDesc")
-    } else {
-      this.listView.ModifyCol(5, "0")
-    }
+    this.listView.ModifyCol(4, "60 Integer SortDesc") ; sort by score
+    this.listView.ModifyCol(5, "0 SortDesc") ; sort by executedAt
     this.listView.ModifyCol(6, "0")
 
     keys := "abcdefghijklmnopqrstuvwxyz"
@@ -282,7 +285,6 @@ class ClassLauncher {
     }
 
     this.listView.Modify(1, "Focus Select")
-
   }
 
   EscKeyPressEvent(*) {
@@ -313,7 +315,7 @@ class ClassLauncher {
     this.listView.Modify(0, "-Select")
     if (this.listView.GetCount() > 0) {
       this.listView.Modify(focusedRowNumber, "Focus Select")
-      this.keywordEdit.Value := this.listView.GetText(focusedRowNumber)
+      this.keywordEdit.value := this.listView.GetText(focusedRowNumber)
     }
     this.keywordEdit.Focus()
   }

@@ -13,7 +13,7 @@ class ClassExeFile {
   }
 
   AddScore(value) {
-    this.score := (this.Score + value)
+    this.score := (this.score + value)
     this.updatedAt := FormatTime(A_Now, "yyyyMMddHHmmss")
   }
 

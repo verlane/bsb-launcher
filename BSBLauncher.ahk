@@ -41,6 +41,8 @@ launcher.FilterExeFiles()
 HotIfWinActive(launcher.GetWindowTitle())
 Hotkey "Up", KeyPressEvent
 Hotkey "Down", KeyPressEvent
+Hotkey "^r", (*) => Reload()
+Hotkey "F5", (*) => Reload()
 
 KeyPressEvent(key) {
   launcher.KeyPressEvent(key)

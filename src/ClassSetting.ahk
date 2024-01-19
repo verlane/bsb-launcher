@@ -66,6 +66,18 @@ class ClassSetting {
     }
   }
 
+  Delete(mapKeys*) {
+    if (mapKeys.Length < 2) {
+      this.settings.Delete(mapKeys[1])
+      return
+    }
+    nextMap := this.settings
+    for index, mapKey in (mapKeys.Slice(1, mapKeys.Length - 1)) {
+      nextMap := nextMap.Get(mapKey, this.NewMap())
+    }
+    nextMap.Delete(mapKeys[mapKeys.Length])
+  }
+
   NewMap() {
     mapObj := Map()
     mapObj.Default := ""

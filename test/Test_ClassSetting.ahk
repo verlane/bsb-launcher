@@ -38,4 +38,21 @@ class ClassSettingTestSuite {
 
         DUnit.Equal(setting.Get("g"), "")
     }
+
+    Test_Delete() {
+        setting := ClassSetting(A_Temp . "\settings.json")
+        mapObj := setting.settings
+
+        setting.Set("a", 1)
+        DUnit.Equal(setting.Get("a"), 1)
+
+        setting.Delete("a")
+        DUnit.Equal(setting.Get("a"), "")
+
+        setting.Set("b", "c", 2)
+        DUnit.Equal(setting.Get("b", "c"), 2)
+
+        setting.Delete("b", "c")
+        DUnit.Equal(setting.Get("b", "c"), "")
+    }
 }

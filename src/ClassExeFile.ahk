@@ -17,12 +17,12 @@ class ClassExeFile {
     this.updatedAt := FormatTime(A_Now, "yyyyMMddHHmmss")
   }
 
-  Run() {
+  Run(argStr := "") {
     this.executedAt := FormatTime(A_Now, "yyyyMMddHHmmss")
-    Run(this.FileFullPath)
+    Run(this.FileFullPath . " " . argStr)
   }
 
   Properties() {
-    Run("properties " this.fileFullPath)
+    Run("properties " . this.fileFullPath)
   }
 }

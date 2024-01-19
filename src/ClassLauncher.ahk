@@ -1,6 +1,7 @@
 class ClassLauncher {
-  static LIST_VIEW_HEADER := ["Name", "No", "Ext", "Score", "ExecutedAt", "FileFullPath"]
-  static LIST_VIEW_FILE_FULL_PATH_INDEX := 6
+  static LIST_VIEW_HEADER := ["Name", "Args", "No", "Ext", "Score", "ExecutedAt", "FileFullPath"]
+  static LIST_VIEW_HEADER_OPTIONS := ["245 Sort", "245", "30 Center", "40", "40 Integer SortDesc", "0 SortDesc", "0"]
+  static LIST_VIEW_FILE_FULL_PATH_INDEX := ClassLauncher.LIST_VIEW_HEADER.Length
 
   static ToIntOrZero(anyValue) { ; TODO
     try {
@@ -51,12 +52,14 @@ class ClassLauncher {
     ; Create a popup menu to be used as the context menu:
     this.contextMenu := Menu()
     this.contextMenu.Add("Open", ObjBindMethod(this, "RunFile"))
-    this.contextMenu.Add("Properties", ObjBindMethod(this, "ContextMenuEvent"))
+    this.contextMenu.Add("Delete from history", ObjBindMethod(this, "ContextMenuEvent"))
     this.contextMenu.Add()
     this.contextMenu.Add("+5 Score", ObjBindMethod(this, "ContextMenuEvent"))
     this.contextMenu.Add("+1 Score", ObjBindMethod(this, "ContextMenuEvent"))
     this.contextMenu.Add("-1 Score", ObjBindMethod(this, "ContextMenuEvent"))
     this.contextMenu.Add("-5 Score", ObjBindMethod(this, "ContextMenuEvent"))
+    this.contextMenu.Add()
+    this.contextMenu.Add("Properties", ObjBindMethod(this, "ContextMenuEvent"))
     this.contextMenu.Default := "Open"  ; Make "Open" a bold font to indicate that double-click does the same thing.
     this.Show()
   }
@@ -88,14 +91,15 @@ class ClassLauncher {
     try {
       this.Hide()
       exeFile := this.exeFilesMap[fileFullPath]
-      exeFile.Run()
+      argStr := this.keywordEdit.value.Split(" ").Slice(2).Join(" ")
+      exeFile.Run(argStr)
       if (!this.exeFileHistoriesMap.Has(fileFullPath)) {
         this.exeFileHistories.InsertAt(1, exeFile)
         this.exeFileHistories := this.exeFileHistories.Sort("N R", "executedAt")
         this.exeFileHistoriesMap[fileFullPath] := exeFile
       }
       this.setting.Set("exeFileHistories", this.exeFileHistories.Slice(1, 18))
-      this.setting.Save()
+      ; this.setting.Save()
     } catch Error as err {
       MsgBox("Could not open " . fileFullPath . ".`nSpecifically: " . err.Message)
     }
@@ -122,6 +126,18 @@ class ClassLauncher {
         this.FilterExeFiles(this.keywordEdit.value)
         baseScore := ClassLauncher.ToIntOrZero(this.setting.Get("exeFiles", fileFullPath, "additionalScore"))
         this.setting.Set("exeFiles", fileFullPath, "additionalScore", baseScore + Integer(SubPat[1]))
+        this.setting.Save()
+      } else if (itemName == "Delete from history") {
+        this.exeFileHistoriesMap.Delete(fileFullPath)
+        tmpArray := []
+        for exeFileHistory in this.exeFileHistories {
+          if exeFileHistory.fileFullPath != fileFullPath {
+            tmpArray.Push(exeFileHistory)
+          }
+        }
+        this.exeFileHistories := tmpArray
+        this.FilterExeFiles()
+        this.setting.Set("exeFileHistories", this.exeFileHistories)
         this.setting.Save()
       } else {
         exeFile.Properties()
@@ -154,7 +170,7 @@ class ClassLauncher {
       ; such as dashes. This unique ID method also performs better because finding an item
       ; in the array does not require search-loop.
       SplitPath(fileName, , , &fileExt)  ; Get the file's extension.
-      if not fileExt ~= "i)\A(EXE|BAT|LNK|AHK)\z"
+      if not fileExt ~= "i)\A(EXE|BAT|LNK|AHK|AHK2)\z"
       {
         continue
       }
@@ -226,20 +242,24 @@ class ClassLauncher {
     }
   }
 
-  AddExeFileToListView(targetExeFiles, needleKeyword := "") {
+  AddExeFileToListView(targetExeFiles, needleKeyword, isHistory := true) {
     Loop (targetExeFiles.Length) {
       exeFile := targetExeFiles[A_Index]
+      if (!isHistory && this.exeFileHistoriesMap.Has(exeFile.fileFullPath)) {
+        continue
+      }
+
       addIt := false
       ; Create the new row in the ListView and assign it the icon number determined above:
-      if (RegExMatch(needleKeyword, "i)^([a-z]+) ", &SubPat)) {
-        if (InStr(exeFile.NameNoExt, SubPat[1]) && InStr(exeFile.Ext, "ahk")) {
+      if (RegExMatch(needleKeyword, "i)^([a-z_]+) ", &SubPat)) {
+        if (InStr(exeFile.NameNoExt, SubPat[1]) && (InStr(exeFile.Ext, "ahk") || InStr(exeFile.Ext, "ahk2"))) {
           addIt := true
         }
       } else if (!needleKeyword || InStr(exeFile.NameNoExt, needleKeyword)) {
         addIt := true
       }
       if (addIt) {
-        this.listView.Add("Icon" . exeFile.iconNumber, exeFile.nameNoExt, "99", exeFile.ext, exeFile.score, exeFile.executedAt, exeFile.fileFullPath)
+        this.listView.Add("Icon" . exeFile.iconNumber, exeFile.nameNoExt, exeFile.argStr, "99", exeFile.ext, exeFile.score, exeFile.executedAt, exeFile.fileFullPath)
       }
       if (this.listView.GetCount() > 18) {
         break
@@ -264,23 +284,21 @@ class ClassLauncher {
     if (needleKeyword == "" && this.exeFileHistories.Length > 0) {
       this.AddExeFileToListView(this.exeFileHistories, needleKeyword)
     } else {
-      this.AddExeFileToListView(this.exeFiles, needleKeyword)
+      this.AddExeFileToListView(this.exeFileHistories, needleKeyword)
+      this.AddExeFileToListView(this.exeFiles, needleKeyword, false)
     }
 
     this.listView.Opt("+Redraw -Hdr")
-    this.listView.ModifyCol(1, "470 Sort")
-    this.listView.ModifyCol(2, "30 Center")
-    this.listView.ModifyCol(3, "40")
-    this.listView.ModifyCol(4, "60 Integer SortDesc") ; sort by score
-    this.listView.ModifyCol(5, "0 SortDesc") ; sort by executedAt
-    this.listView.ModifyCol(6, "0")
+    for i, header in ClassLauncher.LIST_VIEW_HEADER {
+      this.listView.ModifyCol(i, ClassLauncher.LIST_VIEW_HEADER_OPTIONS[i])
+    }
 
     keys := "abcdefghijklmnopqrstuvwxyz"
     Loop this.listView.GetCount() {
       if (A_Index > 9) {
-        this.listView.Modify(A_Index, "", , keys[A_Index - 9])
+        this.listView.Modify(A_Index, "", , , keys[A_Index - 9])
       } else {
-        this.listView.Modify(A_Index, "", , A_Index)
+        this.listView.Modify(A_Index, "", , , A_Index)
       }
     }
 

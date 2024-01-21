@@ -8,9 +8,11 @@
 #Include .\lib\String.ahk
 #Include .\lib\JSON.ahk
 
-#Include .\src\ClassSetting.ahk
-#Include .\src\ClassLauncher.ahk
+#Include .\src\ClassArrayMap.ahk
 #Include .\src\ClassExeFile.ahk
+#Include .\src\ClassExeFileHistory.ahk
+#Include .\src\ClassLauncher.ahk
+#Include .\src\ClassSetting.ahk
 
 SetWorkingDir A_ScriptDir
 

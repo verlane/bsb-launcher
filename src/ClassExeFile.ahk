@@ -1,5 +1,7 @@
 class ClassExeFile {
   __New(iconNumber, fileName, score, fileFullPath) {
+    this.arsStr := "" ; dummy for ClassExeFileHistory
+
     this.iconNumber := iconNumber
     this.fileName := fileName
     this.score := score

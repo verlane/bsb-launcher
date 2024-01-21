@@ -12,11 +12,8 @@ class ClassLauncher {
   }
 
   __New(setting) {
-    this.exeFiles := []
-    this.exeFilesMap := Map()
-    this.exeFileHistories := []
-    this.exeFileHistoriesMap := Map()
-
+    this.exeFilesAMap := ClassArrayMap()
+    this.exeFileHistoriesAMap := ClassArrayMap()
     this.setting := setting
     this.InitializeGui()
     this.FilterExeFiles()
@@ -90,15 +87,15 @@ class ClassLauncher {
     fileFullPath := this.listView.GetText(focusedRowNumber, ClassLauncher.LIST_VIEW_FILE_FULL_PATH_INDEX)
     try {
       this.Hide()
-      exeFile := this.exeFilesMap[fileFullPath]
+      exeFile := this.exeFilesAMap.Get(fileFullPath)
       argStr := this.keywordEdit.value.Split(" ").Slice(2).Join(" ")
       exeFile.Run(argStr)
-      if (!this.exeFileHistoriesMap.Has(fileFullPath)) {
-        this.exeFileHistories.InsertAt(1, exeFile)
-        this.exeFileHistories := this.exeFileHistories.Sort("N R", "executedAt")
-        this.exeFileHistoriesMap[fileFullPath] := exeFile
+      if (!this.exeFileHistoriesAMap.Has(fileFullPath)) {
+        this.exeFileHistoriesAMap.InsertAt(1, exeFile)
+        this.exeFileHistoriesAMap.Sort("N R", "executedAt")
+        this.exeFileHistoriesAMap.Push(fileFullPath, ClassExeFileHistory(exeFile, argStr))
       }
-      this.setting.Set("exeFileHistories", this.exeFileHistories.Slice(1, 18))
+      this.setting.Set("exeFileHistories", this.exeFileHistoriesAMap.Slice(1, 18))
       ; this.setting.Save()
     } catch Error as err {
       MsgBox("Could not open " . fileFullPath . ".`nSpecifically: " . err.Message)
@@ -120,7 +117,7 @@ class ClassLauncher {
       return
     fileFullPath := this.listView.GetText(focusedRowNumber, ClassLauncher.LIST_VIEW_FILE_FULL_PATH_INDEX)  ; Get the text of the second field.
     try {
-      exeFile := this.exeFilesMap[fileFullPath]
+      exeFile := this.exeFilesAMap.Get(fileFullPath)
       if (RegExMatch(itemName, "i)^([`+`-][0-9]+) Score$", &SubPat)) { ; User selected "Open" from the context menu.
         exeFile.AddScore(SubPat[1])
         this.FilterExeFiles(this.keywordEdit.value)
@@ -128,16 +125,9 @@ class ClassLauncher {
         this.setting.Set("exeFiles", fileFullPath, "additionalScore", baseScore + Integer(SubPat[1]))
         this.setting.Save()
       } else if (itemName == "Delete from history") {
-        this.exeFileHistoriesMap.Delete(fileFullPath)
-        tmpArray := []
-        for exeFileHistory in this.exeFileHistories {
-          if exeFileHistory.fileFullPath != fileFullPath {
-            tmpArray.Push(exeFileHistory)
-          }
-        }
-        this.exeFileHistories := tmpArray
+        this.exeFileHistoriesAMap.Delete(fileFullPath)
         this.FilterExeFiles()
-        this.setting.Set("exeFileHistories", this.exeFileHistories)
+        this.setting.Set("exeFileHistories", this.exeFileHistoriesAMap.GetAll())
         this.setting.Save()
       } else {
         exeFile.Properties()
@@ -220,10 +210,9 @@ class ClassLauncher {
       additionalScore := ClassLauncher.ToIntOrZero(this.setting.Get("exeFiles", A_LoopFileFullPath, "additionalScore"))
       score := baseScore + additionalScore
       exeFile := ClassExeFile(iconNumber, A_LoopFileName, score, A_LoopFileFullPath)
-      this.exeFiles.Push(exeFile)
-      this.exeFilesMap[A_LoopFileFullPath] := exeFile
+      this.exeFilesAMap.Push(exeFile, A_LoopFileFullPath)
     }
-    this.exeFiles := this.exeFiles.Sort("N R", "Score")
+    this.exeFilesAMap.Sort("N R", "Score")
   }
 
   LoadExeFileHistories() {
@@ -233,19 +222,18 @@ class ClassLauncher {
     }
 
     for exeFileHistory in exeFileHistories {
-      if (this.exeFilesMap.Has(exeFileHistory["fileFullPath"])) {
-        exeFile := this.exeFilesMap[exeFileHistory["fileFullPath"]]
+      fileFullPath := exeFileHistory["fileFullPath"]
+      if (this.exeFilesAMap.Has(fileFullPath)) {
+        exeFile := this.exeFilesAMap.Get(fileFullPath)
         exeFile.executedAt := exeFileHistory["executedAt"]
-        this.exeFileHistories.Push(exeFile)
-        this.exeFileHistoriesMap[exeFile.fileFullPath] := exeFile
+        this.exeFileHistoriesAMap.Push(exeFile, fileFullPath)
       }
     }
   }
 
-  AddExeFileToListView(targetExeFiles, needleKeyword, isHistory := true) {
-    Loop (targetExeFiles.Length) {
-      exeFile := targetExeFiles[A_Index]
-      if (!isHistory && this.exeFileHistoriesMap.Has(exeFile.fileFullPath)) {
+  AddExeFileToListView(targetExeFilesAMap, needleKeyword, isHistory := true) {
+    for exeFile in targetExeFilesAMap.GetAll() {
+      if (!isHistory && this.exeFileHistoriesAMap.Has(exeFile.fileFullPath)) {
         continue
       }
 
@@ -259,7 +247,7 @@ class ClassLauncher {
         addIt := true
       }
       if (addIt) {
-        this.listView.Add("Icon" . exeFile.iconNumber, exeFile.nameNoExt, exeFile.argStr, "99", exeFile.ext, exeFile.score, exeFile.executedAt, exeFile.fileFullPath)
+        this.listView.Add("Icon" . exeFile.iconNumber, exeFile.nameNoExt, "exeFile.argStr", "99", exeFile.ext, exeFile.score, exeFile.executedAt, exeFile.fileFullPath)
       }
       if (this.listView.GetCount() > 18) {
         break
@@ -281,11 +269,11 @@ class ClassLauncher {
 
     ; Gather a list of file names from the selected folder and append them to the ListView:
     this.listView.Opt("-Redraw")  ; Improve performance by disabling redrawing during load.
-    if (needleKeyword == "" && this.exeFileHistories.Length > 0) {
-      this.AddExeFileToListView(this.exeFileHistories, needleKeyword)
+    if (needleKeyword == "" && this.exeFileHistoriesAMap.Length() > 0) {
+      this.AddExeFileToListView(this.exeFileHistoriesAMap, needleKeyword)
     } else {
-      this.AddExeFileToListView(this.exeFileHistories, needleKeyword)
-      this.AddExeFileToListView(this.exeFiles, needleKeyword, false)
+      this.AddExeFileToListView(this.exeFileHistoriesAMap, needleKeyword)
+      this.AddExeFileToListView(this.exeFilesAMap, needleKeyword, false)
     }
 
     this.listView.Opt("+Redraw -Hdr")

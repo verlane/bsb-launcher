@@ -108,7 +108,7 @@ class ClassLauncher {
       this.exeFileHistoriesAMap.Push(mapKey, exeFileHistory)
       this.exeFileHistoriesAMap.Sort("N R", "executedAt")
       this.setting.Set("exeFileHistories", this.exeFileHistoriesAMap.Slice(1, 18))
-      ; this.setting.Save()
+      this.setting.Save()
     } catch Error as err {
       MsgBox("Could not open " . fileFullPath . ".`nSpecifically: " . err.Message)
     }
@@ -123,29 +123,32 @@ class ClassLauncher {
 
   ; The user selected "Open" or "Properties" in the context menu.
   ContextMenuEvent(itemName, *) {
-    ; For simplicitly, operate upon only the focused row rather than all selected rows:
     focusedRowNumber := this.listView.GetNext(0, "F")  ; Find the focused row.
     if not focusedRowNumber  ; No row is focused.
       return
-    fileFullPath := this.listView.GetText(focusedRowNumber, ClassLauncher.LIST_VIEW_FILE_FULL_PATH_INDEX)  ; Get the text of the second field.
-    try {
-      exeFile := this.exeFilesAMap.Get(fileFullPath)
-      if (RegExMatch(itemName, "i)^([`+`-][0-9]+) Score$", &SubPat)) { ; User selected "Open" from the context menu.
-        exeFile.AddScore(SubPat[1])
-        this.FilterExeFiles(this.keywordEdit.value)
-        baseScore := ClassLauncher.ToIntOrZero(this.setting.Get("exeFiles", fileFullPath, "additionalScore"))
-        this.setting.Set("exeFiles", fileFullPath, "additionalScore", baseScore + Integer(SubPat[1]))
-        this.setting.Save()
-      } else if (itemName == "Delete from history") {
-        this.exeFileHistoriesAMap.Delete(fileFullPath)
-        this.FilterExeFiles()
-        this.setting.Set("exeFileHistories", this.exeFileHistoriesAMap.GetAll())
-        this.setting.Save()
-      } else {
-        exeFile.Properties()
+
+    Loop this.listView.GetCount("selected") {
+      currentRowNumber := focusedRowNumber + A_Index - 1
+      fileFullPath := this.listView.GetText(currentRowNumber, ClassLauncher.LIST_VIEW_FILE_FULL_PATH_INDEX)  ; Get the text of the second field.
+      try {
+        exeFile := this.exeFilesAMap.Get(fileFullPath)
+        if (RegExMatch(itemName, "i)^([`+`-][0-9]+) Score$", &SubPat)) { ; User selected "Open" from the context menu.
+          exeFile.AddScore(SubPat[1])
+          this.FilterExeFiles(this.keywordEdit.value)
+          baseScore := ClassLauncher.ToIntOrZero(this.setting.Get("exeFiles", fileFullPath, "additionalScore"))
+          this.setting.Set("exeFiles", fileFullPath, "additionalScore", baseScore + Integer(SubPat[1]))
+          this.setting.Save()
+        } else if (itemName == "Delete from history") {
+          this.exeFileHistoriesAMap.Delete(fileFullPath)
+          this.FilterExeFiles()
+          this.setting.Set("exeFileHistories", this.exeFileHistoriesAMap.GetAll())
+          this.setting.Save()
+        } else {
+          exeFile.Properties()
+        }
+      } catch Error as err {
+        MsgBox("Could not perform requested action on " fileFullPath ".`nSpecifically: " err.Message)
       }
-    } catch Error as err {
-      MsgBox("Could not perform requested action on " fileFullPath ".`nSpecifically: " err.Message)
     }
   }
 
@@ -234,7 +237,7 @@ class ClassLauncher {
     }
 
     for exeFileHistoryMap in exeFileHistories {
-      fileFullPath := exeFileHistoryMap["fileFullPath"]
+      fileFullPath := exeFileHistoryMap["exeFile"]["fileFullPath"]
       argStr := exeFileHistoryMap["argStr"]
       mapKey := fileFullPath ">" argStr
       if (this.exeFilesAMap.Has(fileFullPath)) {

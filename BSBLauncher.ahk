@@ -27,7 +27,7 @@ if not FileExist("Settings.json") {
 }
 
 launcher := ClassLauncher(setting)
-for index, folderArray in setting.Get("folders") {
+for folderArray in setting.Get("folders") {
   launcher.LoadFolder(folderArray[1], folderArray[2])
 }
 launcher.LoadExeFileHistories()

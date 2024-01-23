@@ -1,6 +1,7 @@
 class ClassExeFile {
   __New(iconNumber, fileName, score, fileFullPath) {
-    this.arsStr := "" ; dummy for ClassExeFileHistory
+    this.argStr := "" ; dummy for ClassExeFileHistory
+    this.executedAt := "-1" ; dummy for ClassExeFileHistory
 
     this.iconNumber := iconNumber
     this.fileName := fileName
@@ -10,17 +11,13 @@ class ClassExeFile {
     SplitPath fileFullPath, &name, &dir, &ext, &nameNoExt, &drive
     this.nameNoExt := nameNoExt
     this.ext := ext
-    this.executedAt := "-1"
-    this.updatedAt := "-1"
   }
 
   AddScore(value) {
     this.score := (this.score + value)
-    this.updatedAt := FormatTime(A_Now, "yyyyMMddHHmmss")
   }
 
   Run(argStr := "") {
-    this.executedAt := FormatTime(A_Now, "yyyyMMddHHmmss")
     Run(this.FileFullPath . " " . argStr)
   }
 

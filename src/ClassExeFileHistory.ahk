@@ -2,12 +2,15 @@ class ClassExeFileHistory {
   __New(exeFile, argStr) {
     this.exeFile := exeFile
     this.argStr := argStr
+    this.executedAt := "-1"
   }
 
-  __get(prop) {
-    if (prop = "exeFile")
+  __Get(name, params) {
+    if (name = "exeFile")
       return this.exeFile
+    else if (name = "executedAt")
+      return this.executedAt
     else
-      return this.exeFile[prop]
+      return this.exeFile.%name%
   }
 }

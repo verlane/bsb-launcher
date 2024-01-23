@@ -4,23 +4,15 @@ class ClassArrayMap {
     this.objectsMap := objectsMap
   }
 
-  Push(obj, mapKey) {
-    this.InsertAt(this.objects.Length + 1, obj, mapKey)
-  }
-
-  InsertAt(index, obj, mapKey) {
+  Push(mapKey, obj) {
     if (this.objectsMap.Has(mapKey)) {
       storedObj := this.objectsMap[mapKey]
       this.objects := this.objects.Filter((currentObj) => (
         storedObj != currentObj
       ))
     }
-    this.objects.InsertAt(index, obj)
     this.objectsMap[mapKey] := obj
-  }
-
-  aa(a, b) {
-    return true
+    this.objects.Push(obj)
   }
 
   Sort(optionsOrCallback := "N", key?) {

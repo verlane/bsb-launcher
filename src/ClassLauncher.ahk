@@ -1,6 +1,7 @@
 class ClassLauncher {
   static LIST_VIEW_HEADER := ["Name", "Args", "No", "Ext", "Score", "ExecutedAt", "FileFullPath"]
   static LIST_VIEW_HEADER_OPTIONS := ["245 Sort", "245", "30 Center", "40", "40 Integer SortDesc", "0 SortDesc", "0"]
+  static LIST_VIEW_ARGS_INDEX := 2
   static LIST_VIEW_FILE_FULL_PATH_INDEX := ClassLauncher.LIST_VIEW_HEADER.Length
 
   static ToIntOrZero(anyValue) { ; TODO
@@ -85,16 +86,27 @@ class ClassLauncher {
   RunFile(*) {
     focusedRowNumber := this.listView.GetNext(0, "F")
     fileFullPath := this.listView.GetText(focusedRowNumber, ClassLauncher.LIST_VIEW_FILE_FULL_PATH_INDEX)
+    storedArgs := this.listView.GetText(focusedRowNumber, ClassLauncher.LIST_VIEW_ARGS_INDEX)
     try {
       this.Hide()
       exeFile := this.exeFilesAMap.Get(fileFullPath)
       argStr := this.keywordEdit.value.Split(" ").Slice(2).Join(" ")
-      exeFile.Run(argStr)
-      if (!this.exeFileHistoriesAMap.Has(fileFullPath)) {
-        this.exeFileHistoriesAMap.InsertAt(1, exeFile)
-        this.exeFileHistoriesAMap.Sort("N R", "executedAt")
-        this.exeFileHistoriesAMap.Push(fileFullPath, ClassExeFileHistory(exeFile, argStr))
+
+      if (argStr) {
+        mapKey := fileFullPath ">" argStr
+        exeFile.Run(argStr)
+      } else {
+        mapKey := fileFullPath ">" storedArgs
+        exeFile.Run(storedArgs)
       }
+      if (this.exeFileHistoriesAMap.Has(mapKey)) {
+        exeFileHistory := this.exeFileHistoriesAMap.Get(mapKey)
+      } else {
+        exeFileHistory := ClassExeFileHistory(exeFile, argStr)
+      }
+      exeFileHistory.executedAt := FormatTime(A_Now, "yyyyMMddHHmmss")
+      this.exeFileHistoriesAMap.Push(mapKey, exeFileHistory)
+      this.exeFileHistoriesAMap.Sort("N R", "executedAt")
       this.setting.Set("exeFileHistories", this.exeFileHistoriesAMap.Slice(1, 18))
       ; this.setting.Save()
     } catch Error as err {
@@ -210,7 +222,7 @@ class ClassLauncher {
       additionalScore := ClassLauncher.ToIntOrZero(this.setting.Get("exeFiles", A_LoopFileFullPath, "additionalScore"))
       score := baseScore + additionalScore
       exeFile := ClassExeFile(iconNumber, A_LoopFileName, score, A_LoopFileFullPath)
-      this.exeFilesAMap.Push(exeFile, A_LoopFileFullPath)
+      this.exeFilesAMap.Push(A_LoopFileFullPath, exeFile)
     }
     this.exeFilesAMap.Sort("N R", "Score")
   }
@@ -221,24 +233,26 @@ class ClassLauncher {
       return
     }
 
-    for exeFileHistory in exeFileHistories {
-      fileFullPath := exeFileHistory["fileFullPath"]
+    for exeFileHistoryMap in exeFileHistories {
+      fileFullPath := exeFileHistoryMap["fileFullPath"]
+      argStr := exeFileHistoryMap["argStr"]
+      mapKey := fileFullPath ">" argStr
       if (this.exeFilesAMap.Has(fileFullPath)) {
         exeFile := this.exeFilesAMap.Get(fileFullPath)
-        exeFile.executedAt := exeFileHistory["executedAt"]
-        this.exeFileHistoriesAMap.Push(exeFile, fileFullPath)
+        exeFileHistory := ClassExeFileHistory(exeFile, argStr)
+        exeFileHistory.executedAt := exeFileHistoryMap["executedAt"]
+        this.exeFileHistoriesAMap.Push(mapKey, exeFileHistory)
       }
     }
   }
 
   AddExeFileToListView(targetExeFilesAMap, needleKeyword, isHistory := true) {
     for exeFile in targetExeFilesAMap.GetAll() {
-      if (!isHistory && this.exeFileHistoriesAMap.Has(exeFile.fileFullPath)) {
+      if (!isHistory && (this.exeFileHistoriesAMap.Has(exeFile.fileFullPath) || this.exeFileHistoriesAMap.Has(exeFile.fileFullPath) . ">")) {
         continue
       }
 
       addIt := false
-      ; Create the new row in the ListView and assign it the icon number determined above:
       if (RegExMatch(needleKeyword, "i)^([a-z_]+) ", &SubPat)) {
         if (InStr(exeFile.NameNoExt, SubPat[1]) && (InStr(exeFile.Ext, "ahk") || InStr(exeFile.Ext, "ahk2"))) {
           addIt := true
@@ -247,7 +261,7 @@ class ClassLauncher {
         addIt := true
       }
       if (addIt) {
-        this.listView.Add("Icon" . exeFile.iconNumber, exeFile.nameNoExt, "exeFile.argStr", "99", exeFile.ext, exeFile.score, exeFile.executedAt, exeFile.fileFullPath)
+        this.listView.Add("Icon" . exeFile.iconNumber, exeFile.nameNoExt, exeFile.argStr, "99", exeFile.ext, exeFile.score, exeFile.executedAt, exeFile.fileFullPath)
       }
       if (this.listView.GetCount() > 18) {
         break
@@ -322,6 +336,10 @@ class ClassLauncher {
     if (this.listView.GetCount() > 0) {
       this.listView.Modify(focusedRowNumber, "Focus Select")
       this.keywordEdit.value := this.listView.GetText(focusedRowNumber)
+      argStr := this.listView.GetText(focusedRowNumber, 2)
+      if (argStr) {
+        this.keywordEdit.value := this.keywordEdit.value .  " " . argStr
+      }
     }
     this.keywordEdit.Focus()
   }

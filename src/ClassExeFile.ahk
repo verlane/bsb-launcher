@@ -1,15 +1,14 @@
 class ClassExeFile {
-  __New(iconNumber, fileName, score, fileFullPath) {
+  __New(iconNumber, score, fileFullPath) {
     this.argStr := "" ; dummy for ClassExeFileHistory
     this.executedAt := "-1" ; dummy for ClassExeFileHistory
 
     this.iconNumber := iconNumber
-    this.fileName := fileName
     this.score := score
-    this.fileFullPath := FileFullPath
+    this.fileFullPath := fileFullPath
 
     SplitPath fileFullPath, &name, &dir, &ext, &nameNoExt, &drive
-    this.nameNoExt := nameNoExt
+    this.nameNoExt := nameNoExt.Replace(" ", "`r") ; for params
     this.ext := ext
   }
 
@@ -18,7 +17,12 @@ class ClassExeFile {
   }
 
   Run(argStr := "") {
-    Run(this.FileFullPath . " " . argStr)
+    if (InStr(this.ext, "ahk")) {
+      command := A_AhkPath . " " . this.fileFullPath . " " . argStr
+    } else {
+      command := this.fileFullPath . " " . argStr
+    }
+    Run(command)
   }
 
   Properties() {

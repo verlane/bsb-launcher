@@ -31,7 +31,7 @@ for folderArray in setting.Get("folders") {
   launcher.LoadFolder(folderArray[1], folderArray[2])
 }
 launcher.LoadExeFileHistories()
-launcher.FilterExeFiles()
+launcher.Show()
 
 
 ^,:: {

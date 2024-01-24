@@ -1,6 +1,6 @@
 class ClassLauncher {
   static LIST_VIEW_HEADER := ["Name", "Args", "No", "Ext", "Score", "ExecutedAt", "FileFullPath"]
-  static LIST_VIEW_HEADER_OPTIONS := ["245 Sort", "245", "30 Center", "40", "40 Integer SortDesc", "0 SortDesc", "0"]
+  static LIST_VIEW_HEADER_OPTIONS := ["490 Sort", "0", "30 Center", "40", "40 Integer SortDesc", "0 SortDesc", "0"]
   static LIST_VIEW_ARGS_INDEX := 2
   static LIST_VIEW_FILE_FULL_PATH_INDEX := ClassLauncher.LIST_VIEW_HEADER.Length
 
@@ -32,7 +32,7 @@ class ClassLauncher {
     this.runButton := this.gui.Add("Button", "default w0 h0", "OK")
     this.runButton.OnEvent("Click", (*) => this.Submit())
 
-    this.listView := this.gui.Add("ListView", "x6 y64 h490 w606 +Grid -Hdr", ClassLauncher.LIST_VIEW_HEADER)
+    this.listView := this.gui.Add("ListView", "x6 y64 h490 w606 +Grid -Hdr -Multi", ClassLauncher.LIST_VIEW_HEADER) ; TODO +Multi
     this.listView.SetFont("s12", "Segoe UI")
 
     ; Create an ImageList so that the ListView can display some icons:
@@ -50,7 +50,7 @@ class ClassLauncher {
     ; Create a popup menu to be used as the context menu:
     this.contextMenu := Menu()
     this.contextMenu.Add("Open", ObjBindMethod(this, "RunFile"))
-    this.contextMenu.Add("Delete from history", ObjBindMethod(this, "ContextMenuEvent"))
+    this.contextMenu.Add("Delete from history(&D)", ObjBindMethod(this, "ContextMenuEvent"))
     this.contextMenu.Add()
     this.contextMenu.Add("+5 Score", ObjBindMethod(this, "ContextMenuEvent"))
     this.contextMenu.Add("+1 Score", ObjBindMethod(this, "ContextMenuEvent"))
@@ -68,7 +68,10 @@ class ClassLauncher {
 
   Show() {
     this.gui.Show("w620 h562")
+    this.keywordEdit.Value := ", "
     this.keywordEdit.Focus()
+    Send("{End}")
+    this.FilterExeFiles(this.keywordEdit.Value)
   }
 
   Hide() {
@@ -127,28 +130,28 @@ class ClassLauncher {
     if not focusedRowNumber  ; No row is focused.
       return
 
-    Loop this.listView.GetCount("selected") {
-      currentRowNumber := focusedRowNumber + A_Index - 1
-      fileFullPath := this.listView.GetText(currentRowNumber, ClassLauncher.LIST_VIEW_FILE_FULL_PATH_INDEX)  ; Get the text of the second field.
-      try {
-        exeFile := this.exeFilesAMap.Get(fileFullPath)
-        if (RegExMatch(itemName, "i)^([`+`-][0-9]+) Score$", &SubPat)) { ; User selected "Open" from the context menu.
-          exeFile.AddScore(SubPat[1])
-          this.FilterExeFiles(this.keywordEdit.value)
-          baseScore := ClassLauncher.ToIntOrZero(this.setting.Get("exeFiles", fileFullPath, "additionalScore"))
-          this.setting.Set("exeFiles", fileFullPath, "additionalScore", baseScore + Integer(SubPat[1]))
-          this.setting.Save()
-        } else if (itemName == "Delete from history") {
-          this.exeFileHistoriesAMap.Delete(fileFullPath)
-          this.FilterExeFiles()
-          this.setting.Set("exeFileHistories", this.exeFileHistoriesAMap.GetAll())
-          this.setting.Save()
-        } else {
-          exeFile.Properties()
-        }
-      } catch Error as err {
-        MsgBox("Could not perform requested action on " fileFullPath ".`nSpecifically: " err.Message)
+    currentRowNumber := focusedRowNumber + A_Index - 1
+    fileFullPath := this.listView.GetText(focusedRowNumber, ClassLauncher.LIST_VIEW_FILE_FULL_PATH_INDEX) 
+    argStr := this.listView.GetText(focusedRowNumber, ClassLauncher.LIST_VIEW_ARGS_INDEX)
+    mapKey := fileFullPath ">" argStr
+    try {
+      exeFile := this.exeFilesAMap.Get(fileFullPath)
+      if (RegExMatch(itemName, "i)^([`+`-][0-9]+) Score$", &SubPat)) { ; User selected "Open" from the context menu.
+        exeFile.AddScore(SubPat[1])
+        this.FilterExeFiles(this.keywordEdit.value)
+        baseScore := ClassLauncher.ToIntOrZero(this.setting.Get("exeFiles", fileFullPath, "additionalScore"))
+        this.setting.Set("exeFiles", fileFullPath, "additionalScore", baseScore + Integer(SubPat[1]))
+        this.setting.Save()
+      } else if (InStr(itemName, "Delete from history")) {
+        this.exeFileHistoriesAMap.Delete(mapKey)
+        this.FilterExeFiles()
+        this.setting.Set("exeFileHistories", this.exeFileHistoriesAMap.GetAll())
+        this.setting.Save()
+      } else {
+        exeFile.Properties()
       }
+    } catch Error as err {
+      MsgBox("Could not perform requested action on " fileFullPath ".`nSpecifically: " err.Message)
     }
   }
 
@@ -224,7 +227,7 @@ class ClassLauncher {
 
       additionalScore := ClassLauncher.ToIntOrZero(this.setting.Get("exeFiles", A_LoopFileFullPath, "additionalScore"))
       score := baseScore + additionalScore
-      exeFile := ClassExeFile(iconNumber, A_LoopFileName, score, A_LoopFileFullPath)
+      exeFile := ClassExeFile(iconNumber, score, A_LoopFileFullPath)
       this.exeFilesAMap.Push(A_LoopFileFullPath, exeFile)
     }
     this.exeFilesAMap.Sort("N R", "Score")
@@ -249,26 +252,48 @@ class ClassLauncher {
     }
   }
 
-  AddExeFileToListView(targetExeFilesAMap, needleKeyword, isHistory := true) {
+  AddExeFileToListView2(targetExeFilesAMap, needleKeyword := "", isHistory := true) {
     for exeFile in targetExeFilesAMap.GetAll() {
-      if (!isHistory && (this.exeFileHistoriesAMap.Has(exeFile.fileFullPath) || this.exeFileHistoriesAMap.Has(exeFile.fileFullPath) . ">")) {
+      if (!isHistory && (this.exeFileHistoriesAMap.Has(exeFile.fileFullPath) || this.exeFileHistoriesAMap.Has(exeFile.fileFullPath . ">"))) {
         continue
       }
 
+      needleKeywords := needleKeyword.Split(" ")
+      command := ""
+      if (needleKeywords.Length > 0) {
+        command := needleKeywords[1]
+      }
+      argStr := ""
+      if (needleKeywords.Length > 1) {
+        argStr := needleKeywords.Slice(2).Join(" ")
+      }
+
       addIt := false
-      if (RegExMatch(needleKeyword, "i)^([a-z_]+) ", &SubPat)) {
-        if (InStr(exeFile.NameNoExt, SubPat[1]) && (InStr(exeFile.Ext, "ahk") || InStr(exeFile.Ext, "ahk2"))) {
+      if (RegExMatch(command, "i)^([a-z_,`-]+) ", &SubPat)) {
+        if (InStr(exeFile.NameNoExt, SubPat[1]) && (InStr(exeFile.Ext, "ahk") || InStr(exeFile.Ext, "ahk2")) && (!argStr || InStr(exeFile.ArgStr, argStr)))  {
           addIt := true
         }
-      } else if (!needleKeyword || InStr(exeFile.NameNoExt, needleKeyword)) {
+      } else if (!command || InStr(exeFile.NameNoExt, command) && (!argStr || InStr(exeFile.ArgStr, argStr))) {
         addIt := true
       }
       if (addIt) {
-        this.listView.Add("Icon" . exeFile.iconNumber, exeFile.nameNoExt, exeFile.argStr, "99", exeFile.ext, exeFile.score, exeFile.executedAt, exeFile.fileFullPath)
+        this.listView.Add("Icon" . exeFile.iconNumber, exeFile.nameNoExt . " " . exeFile.argStr, exeFile.argStr, "99", exeFile.ext, exeFile.score, exeFile.executedAt, exeFile.fileFullPath)
       }
       if (this.listView.GetCount() > 18) {
         break
       }
+    }
+  }
+
+  AddExeFileToListView(targetExeFilesAMap, needleKeyword := "", isHistory := true) {
+    this.AddExeFileToListView2(targetExeFilesAMap, needleKeyword, isHistory)
+    if (this.listView.GetCount() < 1) {
+      needleKeywords := needleKeyword.Split(" ")
+      command := ""
+      if (needleKeywords.Length > 0) {
+        command := needleKeywords[1]
+      }
+      this.AddExeFileToListView2(targetExeFilesAMap, command, isHistory)
     }
   }
 
@@ -339,10 +364,10 @@ class ClassLauncher {
     if (this.listView.GetCount() > 0) {
       this.listView.Modify(focusedRowNumber, "Focus Select")
       this.keywordEdit.value := this.listView.GetText(focusedRowNumber)
-      argStr := this.listView.GetText(focusedRowNumber, 2)
-      if (argStr) {
-        this.keywordEdit.value := this.keywordEdit.value .  " " . argStr
-      }
+      ; argStr := this.listView.GetText(focusedRowNumber, 2)
+      ; if (argStr) {
+      ;   this.keywordEdit.value := this.keywordEdit.value .  " " . argStr
+      ; }
     }
     this.keywordEdit.Focus()
   }

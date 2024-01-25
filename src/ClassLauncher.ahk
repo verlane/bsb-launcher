@@ -144,7 +144,7 @@ class ClassLauncher {
         this.setting.Save()
       } else if (InStr(itemName, "Delete from history")) {
         this.exeFileHistoriesAMap.Delete(mapKey)
-        this.FilterExeFiles()
+        this.FilterExeFiles(this.keywordEdit.value)
         this.setting.Set("exeFileHistories", this.exeFileHistoriesAMap.GetAll())
         this.setting.Save()
       } else {

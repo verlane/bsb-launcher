@@ -43,6 +43,8 @@ launcher.Show()
 HotIfWinActive(launcher.GetWindowTitle())
 Hotkey "Up", KeyPressEvent
 Hotkey "Down", KeyPressEvent
+Hotkey "!Enter", KeyPressEvent
+Hotkey "!+Enter", KeyPressEvent
 Hotkey "^r", (*) => Reload()
 Hotkey "F5", (*) => Reload()
 

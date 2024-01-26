@@ -16,9 +16,10 @@ class ClassExeFile {
     this.score := (this.score + value)
   }
 
-  Run(argStr := "") {
+  Run(argStr := "", metaKeyFlags := "000") {
     if (InStr(this.ext, "ahk")) {
-      command := A_AhkPath . " " . this.fileFullPath . " " . argStr
+      ; TODO metaKeyFlags
+      command := A_AhkPath . " " . this.fileFullPath . " " . metaKeyFlags . " " . argStr
     } else {
       command := this.fileFullPath . " " . argStr
     }

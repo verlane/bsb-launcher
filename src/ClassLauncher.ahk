@@ -87,6 +87,11 @@ class ClassLauncher {
   }
 
   RunFile(*) {
+    pressLCtrl := GetKeyState("LCtrl", "P") ; the value is 1 at pressed
+    pressLShift := GetKeyState("LShift", "P")
+    pressLAlt := GetKeyState("LAlt", "P")
+    metaKeyFlags := pressLCtrl . pressLShift . pressLAlt
+
     focusedRowNumber := this.listView.GetNext(0, "F")
     fileFullPath := this.listView.GetText(focusedRowNumber, ClassLauncher.LIST_VIEW_FILE_FULL_PATH_INDEX)
     storedArgs := this.listView.GetText(focusedRowNumber, ClassLauncher.LIST_VIEW_ARGS_INDEX)
@@ -97,10 +102,10 @@ class ClassLauncher {
 
       if (argStr) {
         mapKey := fileFullPath ">" argStr
-        exeFile.Run(argStr)
+        exeFile.Run(argStr, metaKeyFlags)
       } else {
         mapKey := fileFullPath ">" storedArgs
-        exeFile.Run(storedArgs)
+        exeFile.Run(storedArgs, metaKeyFlags)
       }
       if (this.exeFileHistoriesAMap.Has(mapKey)) {
         exeFileHistory := this.exeFileHistoriesAMap.Get(mapKey)
@@ -131,7 +136,7 @@ class ClassLauncher {
       return
 
     currentRowNumber := focusedRowNumber + A_Index - 1
-    fileFullPath := this.listView.GetText(focusedRowNumber, ClassLauncher.LIST_VIEW_FILE_FULL_PATH_INDEX) 
+    fileFullPath := this.listView.GetText(focusedRowNumber, ClassLauncher.LIST_VIEW_FILE_FULL_PATH_INDEX)
     argStr := this.listView.GetText(focusedRowNumber, ClassLauncher.LIST_VIEW_ARGS_INDEX)
     mapKey := fileFullPath ">" argStr
     try {
@@ -270,7 +275,7 @@ class ClassLauncher {
 
       addIt := false
       if (RegExMatch(command, "i)^([a-z_,`-]+) ", &SubPat)) {
-        if (InStr(exeFile.NameNoExt, SubPat[1]) && (InStr(exeFile.Ext, "ahk") || InStr(exeFile.Ext, "ahk2")) && (!argStr || InStr(exeFile.ArgStr, argStr)))  {
+        if (InStr(exeFile.NameNoExt, SubPat[1]) && (InStr(exeFile.Ext, "ahk") || InStr(exeFile.Ext, "ahk2")) && (!argStr || InStr(exeFile.ArgStr, argStr))) {
           addIt := true
         }
       } else if (!command || InStr(exeFile.NameNoExt, command) && (!argStr || InStr(exeFile.ArgStr, argStr))) {
@@ -359,6 +364,8 @@ class ClassLauncher {
       focusedRowNumber := Max(focusedRowNumber - 1, 1)
     } else if (thisHotkey == "Down") {
       focusedRowNumber := Min(focusedRowNumber + 1, this.listView.GetCount())
+    } else if (thisHotkey == "!Enter" || thisHotkey == "!+Enter") {
+      this.RunFile()
     }
     this.listView.Modify(0, "-Select")
     if (this.listView.GetCount() > 0) {

@@ -10,6 +10,7 @@ class ClassExeFile {
     SplitPath fileFullPath, &name, &dir, &ext, &nameNoExt, &drive
     this.nameNoExt := nameNoExt.Replace(" ", "`r") ; for params
     this.ext := ext
+    this.name := name
   }
 
   AddScore(value) {
@@ -17,9 +18,10 @@ class ClassExeFile {
   }
 
   Run(argStr := "", metaKeyFlags := "000") {
-    if (InStr(this.ext, "ahk")) {
-      ; TODO metaKeyFlags
+    if (InStr(this.name, ",.ahk")) { ; Default Command
       command := A_AhkPath . " " . this.fileFullPath . " " . metaKeyFlags . " " . argStr
+    } else if (InStr(this.ext, "ahk")) {
+      command := A_AhkPath . " " . this.fileFullPath . " " . metaKeyFlags . " " . this.nameNoExt . " " . argStr
     } else {
       command := this.fileFullPath . " " . argStr
     }

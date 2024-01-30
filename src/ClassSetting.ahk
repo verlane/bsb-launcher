@@ -15,7 +15,7 @@ class ClassSetting {
     if FileExist(this.fileFullPath) {
       FileDelete this.fileFullPath
     }
-    FileAppend JSON.stringify(this.settings), this.fileFullPath
+    FileAppend JSON.stringify(this.settings), this.fileFullPath, "UTF-8"
   }
 
   Get(mapKeys*) {

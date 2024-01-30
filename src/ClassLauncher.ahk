@@ -87,6 +87,12 @@ class ClassLauncher {
   }
 
   RunFile(*) {
+    if (this.listView.GetText(1, ClassLauncher.LIST_VIEW_FILE_FULL_PATH_INDEX) == "eval") { ; for eval
+      A_Clipboard := this.listView.GetText(1, 1)
+      this.Hide()
+      return
+    }
+
     pressLCtrl := GetKeyState("LCtrl", "P") ; the value is 1 at pressed
     pressLShift := GetKeyState("LShift", "P")
     pressLAlt := GetKeyState("LAlt", "P")
@@ -307,8 +313,13 @@ class ClassLauncher {
 
     try {
       if (StrLen(needleKeyword) > 1) {
-        result := eval(needleKeyword)
-        this.listView.Add(, result)
+        result := Format("{:.10f}", eval(needleKeyword))
+        result := RegExReplace(result, "0+$", "") ; replace 0.1000 to 0.1
+        intValue := Integer(result)
+        if (result == intValue) {
+          result := intValue
+        }
+        this.listView.Add(, RegExReplace(result, "(\d)(?=(\d{3})+(?!\d))", "$1,"), , , , , , "eval")
         return
       }
     } catch {

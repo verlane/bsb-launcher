@@ -16,6 +16,11 @@
 
 SetWorkingDir A_ScriptDir
 
+if (!FileExist(".\commands")) {
+  DirCreate(".\commands")
+  FileAppend("", ".\commands\,ahk")
+}
+
 setting := ClassSetting("Settings.json")
 if not FileExist("Settings.json") {
   setting.Set("folders", [

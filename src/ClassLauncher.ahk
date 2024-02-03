@@ -44,6 +44,7 @@ class ClassLauncher {
     this.listView.SetImageList(this.imageListID2)
 
     ; Apply control events:
+    this.listView.OnEvent("Click", ObjBindMethod(this, "HandleClick"))
     this.listView.OnEvent("DoubleClick", ObjBindMethod(this, "RunFile"))
     this.listView.OnEvent("ContextMenu", ObjBindMethod(this, "ShowContextMenu"))
 
@@ -121,11 +122,16 @@ class ClassLauncher {
       exeFileHistory.executedAt := FormatTime(A_Now, "yyyyMMddHHmmss")
       this.exeFileHistoriesAMap.Push(mapKey, exeFileHistory)
       this.exeFileHistoriesAMap.Sort("N R", "executedAt")
-      this.setting.Set("exeFileHistories", this.exeFileHistoriesAMap.Slice(1, 18))
+      this.setting.Set("exeFileHistories", this.exeFileHistoriesAMap.Slice(1, 128))
       this.setting.Save()
     } catch Error as err {
       MsgBox("Could not open " . fileFullPath . ".`nSpecifically: " . err.Message)
     }
+  }
+
+  HandleClick(*) {
+    focusedRowNumber := this.listView.GetNext(0, "F")
+    this.keywordEdit.value := this.listView.GetText(focusedRowNumber, 1)
   }
 
   ; In response to right-click or Apps key.
@@ -318,8 +324,9 @@ class ClassLauncher {
         intValue := Integer(result)
         if (result == intValue) {
           result := intValue
+          result := RegExReplace(result, "(\d)(?=(\d{3})+(?!\d))", "$1,")
         }
-        this.listView.Add(, RegExReplace(result, "(\d)(?=(\d{3})+(?!\d))", "$1,"), , , , , , "eval")
+        this.listView.Add(, result, , , , , , "eval")
         return
       }
     } catch {

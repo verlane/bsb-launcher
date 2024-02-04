@@ -7,6 +7,8 @@
 #Include .\lib\Misc.ahk
 #Include .\lib\String.ahk
 #Include .\lib\JSON.ahk
+#Include .\lib\Native.ahk
+Native.LoadModule(".\lib\ahk-json.dll", ["JSON"])
 
 #Include .\src\ClassArrayMap.ahk
 #Include .\src\ClassExeFile.ahk

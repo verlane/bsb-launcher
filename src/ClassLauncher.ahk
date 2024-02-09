@@ -1,4 +1,5 @@
 class ClassLauncher {
+  static COMMAND_MODE_PREFIX := ", "
   static LIST_VIEW_HEADER := ["Name", "Args", "No", "Ext", "Score", "ExecutedAt", "FileFullPath"]
   static LIST_VIEW_HEADER_OPTIONS := ["490 Sort", "0", "30 Center", "40", "40 Integer SortDesc", "0 SortDesc", "0"]
   static LIST_VIEW_ARGS_INDEX := 2
@@ -60,18 +61,35 @@ class ClassLauncher {
     this.contextMenu.Add()
     this.contextMenu.Add("Properties", ObjBindMethod(this, "ContextMenuEvent"))
     this.contextMenu.Default := "Open"  ; Make "Open" a bold font to indicate that double-click does the same thing.
-    this.Show()
   }
 
   GetWindowTitle() {
     return this.gui.Title
   }
 
-  Show() {
+  ShowAsCommandMode() {
     this.gui.Show("w620 h562")
-    this.keywordEdit.Value := ", "
-    this.keywordEdit.Focus()
-    Send("{End}")
+    if (this.keywordEdit.Value.RegExMatch("i)^" . ClassLauncher.COMMAND_MODE_PREFIX . "+")) {
+      this.FilterExeFiles(ClassLauncher.COMMAND_MODE_PREFIX)
+      this.keywordEdit.Focus()
+      Send("{Home}{Right 2}{Shift Down}{End}{Shift Up}")
+    } else {
+      this.keywordEdit.Value := ClassLauncher.COMMAND_MODE_PREFIX
+      this.keywordEdit.Focus()
+      Send("{End}")
+      this.FilterExeFiles(this.keywordEdit.Value)
+    }
+  }
+
+  Show(keyword := "") {
+    this.gui.Show("w620 h562")
+    if (keyword) {
+      this.keywordEdit.Value := keyword
+      this.keywordEdit.Focus()
+      Send("{End}")
+    } else {
+      this.keywordEdit.Focus()
+    }
     this.FilterExeFiles(this.keywordEdit.Value)
   }
 

@@ -1,9 +1,23 @@
 class ClassLauncher {
   static COMMAND_MODE_PREFIX := ", "
-  static LIST_VIEW_HEADER := ["Name", "Args", "No", "Ext", "Score", "ExecutedAt", "FileFullPath"]
-  static LIST_VIEW_HEADER_OPTIONS := ["490 Sort", "0", "30 Center", "40", "40 Integer SortDesc", "0 SortDesc", "0"]
-  static LIST_VIEW_ARGS_INDEX := 2
+
+  static LIST_VIEW_HEADER := ["Name", "No", "Ext", "Score", "ExecutedAt", "Args", "FileFullPath"]
+  static LIST_VIEW_HEADER_OPTIONS := ["490 Sort", "30 Center", "40", "40 Integer SortDesc", "0 SortDesc", "0", "0"]
   static LIST_VIEW_FILE_FULL_PATH_INDEX := ClassLauncher.LIST_VIEW_HEADER.Length
+  static LIST_VIEW_ARGS_INDEX := ClassLauncher.LIST_VIEW_FILE_FULL_PATH_INDEX - 1
+  AddToListView(listView, exeFile) {
+    listView.Add("Icon" . exeFile.iconNumber, exeFile.nameNoExt . " " . exeFile.argStr, "a", exeFile.ext, exeFile.score, exeFile.executedAt, exeFile.argStr, exeFile.fileFullPath)
+  }
+  ModifyShortcuts(listView){
+    keys := "abcdefghijklmnopqrstuvwxyz"
+    Loop this.listView.GetCount() {
+      if (A_Index > 9) {
+        this.listView.Modify(A_Index, "", , keys[A_Index - 9])
+      } else {
+        this.listView.Modify(A_Index, "", , A_Index)
+      }
+    }
+  }
 
   static ToIntOrZero(anyValue) { ; TODO
     try {
@@ -312,7 +326,7 @@ class ClassLauncher {
         addIt := true
       }
       if (addIt) {
-        this.listView.Add("Icon" . exeFile.iconNumber, exeFile.nameNoExt . " " . exeFile.argStr, exeFile.argStr, "99", exeFile.ext, exeFile.score, exeFile.executedAt, exeFile.fileFullPath)
+        this.AddToListView(this.listView, exeFile)
       }
       if (this.listView.GetCount() > 18) {
         break
@@ -364,14 +378,7 @@ class ClassLauncher {
       this.listView.ModifyCol(i, ClassLauncher.LIST_VIEW_HEADER_OPTIONS[i])
     }
 
-    keys := "abcdefghijklmnopqrstuvwxyz"
-    Loop this.listView.GetCount() {
-      if (A_Index > 9) {
-        this.listView.Modify(A_Index, "", , , keys[A_Index - 9])
-      } else {
-        this.listView.Modify(A_Index, "", , , A_Index)
-      }
-    }
+    this.ModifyShortcuts(this.listView)
 
     this.listView.Modify(1, "Focus Select")
   }

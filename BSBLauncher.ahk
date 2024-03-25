@@ -16,6 +16,10 @@ Native.LoadModule(".\lib\ahk-json.dll", ["JSON"])
 #Include .\src\ClassLauncher.ahk
 #Include .\src\ClassSetting.ahk
 
+if (!A_IsCompiled) {
+  TraySeticon(A_ScriptDir . "\BSBLauncher.ico")
+}
+
 SetWorkingDir A_ScriptDir
 
 if (!FileExist(".\commands")) {

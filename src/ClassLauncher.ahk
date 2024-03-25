@@ -2,10 +2,10 @@ class ClassLauncher {
   static COMMAND_MODE_PREFIX := ", "
 
   static LIST_VIEW_HEADER := ["Name", "No", "Ext", "Score", "ExecutedAt", "Args", "FileFullPath"]
-  static LIST_VIEW_HEADER_OPTIONS := ["490 Sort", "30 Center", "40", "40 Integer SortDesc", "0 SortDesc", "0", "0"]
+  static LIST_VIEW_HEADER_OPTIONS := ["485 Sort", "30 Center", "45", "40 Integer SortDesc", "0 SortDesc", "0", "0"]
   static LIST_VIEW_FILE_FULL_PATH_INDEX := ClassLauncher.LIST_VIEW_HEADER.Length
   static LIST_VIEW_ARGS_INDEX := ClassLauncher.LIST_VIEW_FILE_FULL_PATH_INDEX - 1
-  AddToListView(listView, exeFile) {
+  AddToListView(exeFile, listView) {
     listView.Add("Icon" . exeFile.iconNumber, exeFile.nameNoExt . " " . exeFile.argStr, "a", exeFile.ext, exeFile.score, exeFile.executedAt, exeFile.argStr, exeFile.fileFullPath)
   }
   ModifyShortcuts(listView){
@@ -326,7 +326,7 @@ class ClassLauncher {
         addIt := true
       }
       if (addIt) {
-        this.AddToListView(this.listView, exeFile)
+        this.AddToListView(exeFile, this.listView)
       }
       if (this.listView.GetCount() > 18) {
         break
@@ -403,9 +403,9 @@ class ClassLauncher {
       return
     }
     focusedRowNumber := this.listView.GetNext(0, "F") ; Find the focused row.
-    if (thisHotkey == "Up") {
+    if (thisHotkey == "Up" || thisHotkey == "^k") {
       focusedRowNumber := Max(focusedRowNumber - 1, 1)
-    } else if (thisHotkey == "Down") {
+    } else if (thisHotkey == "Down" || thisHotkey == "^j") {
       focusedRowNumber := Min(focusedRowNumber + 1, this.listView.GetCount())
     } else if (thisHotkey == "!Enter" || thisHotkey == "!+Enter") {
       this.RunFile()

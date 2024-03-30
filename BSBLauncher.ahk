@@ -52,8 +52,6 @@ launcher.LoadExeFileHistories()
   launcher.Show()
 }
 
-#Include .\tmp\PrivateScripts.ahk
-
 HotIfWinActive(launcher.GetWindowTitle())
 Hotkey "Up", KeyPressEvent
 Hotkey "^k", KeyPressEvent

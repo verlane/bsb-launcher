@@ -406,7 +406,11 @@ class ClassLauncher {
     if (thisHotkey == "Up" || thisHotkey == "^k") {
       focusedRowNumber := Max(focusedRowNumber - 1, 1)
     } else if (thisHotkey == "Down" || thisHotkey == "^j") {
-      focusedRowNumber := Min(focusedRowNumber + 1, this.listView.GetCount())
+      if (this.listView.GetText(focusedRowNumber) == this.keywordEdit.value) {
+        focusedRowNumber := Min(focusedRowNumber + 1, this.listView.GetCount())
+      } else { 
+        focusedRowNumber := Max(focusedRowNumber, 1)
+      } 
     } else if (thisHotkey == "!Enter" || thisHotkey == "!+Enter") {
       this.RunFile()
     }

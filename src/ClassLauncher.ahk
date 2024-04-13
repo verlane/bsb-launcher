@@ -411,7 +411,7 @@ class ClassLauncher {
       } else { 
         focusedRowNumber := Max(focusedRowNumber, 1)
       } 
-    } else if (thisHotkey == "!Enter" || thisHotkey == "!+Enter") {
+    } else if (thisHotkey == "!Enter" || thisHotkey == "!+Enter" || thisHotkey == "^m") {
       this.RunFile()
     }
     this.listView.Modify(0, "-Select")

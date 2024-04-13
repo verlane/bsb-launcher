@@ -43,7 +43,6 @@ for folderArray in setting.Get("folders") {
 }
 launcher.LoadExeFileHistories()
 
-
 ^;:: {
   launcher.ShowAsCommandMode()
 }
@@ -57,6 +56,7 @@ Hotkey "Up", KeyPressEvent
 Hotkey "^k", KeyPressEvent
 Hotkey "Down", KeyPressEvent
 Hotkey "^j", KeyPressEvent
+Hotkey "^m", KeyPressEvent
 Hotkey "!Enter", KeyPressEvent
 Hotkey "!+Enter", KeyPressEvent
 Hotkey "^r", (*) => Reload()
@@ -64,4 +64,20 @@ Hotkey "F5", (*) => Reload()
 
 KeyPressEvent(key) {
   launcher.KeyPressEvent(key)
+}
+
+
+HotIf
+
+WM_USER_CUSTOM := 0x0401
+OnMessage WM_USER_CUSTOM, CustomMsgHandler
+CustomMsgHandler(wParam, lParam, msg, hwnd) {
+  if (wParam = 1) {
+    KeyPressEvent("Up")
+  } else if (wParam = 2) {
+    KeyPressEvent("Down")
+  } else if (wParam = 3) {
+    KeyPressEvent("^m")
+  }
+  return 0
 }

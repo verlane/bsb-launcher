@@ -53,8 +53,10 @@ launcher.LoadExeFileHistories()
 
 HotIfWinActive(launcher.GetWindowTitle())
 Hotkey "Up", KeyPressEvent
+Hotkey "+Tab", KeyPressEvent
 Hotkey "^k", KeyPressEvent
 Hotkey "Down", KeyPressEvent
+Hotkey "Tab", KeyPressEvent
 Hotkey "^j", KeyPressEvent
 Hotkey "^m", KeyPressEvent
 Hotkey "!Enter", KeyPressEvent

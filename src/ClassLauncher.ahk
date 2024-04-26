@@ -140,10 +140,10 @@ class ClassLauncher {
       argStr := this.keywordEdit.value.Split(" ").Slice(2).Join(" ")
 
       if (argStr) {
-        mapKey := fileFullPath ">" argStr
+        mapKey := fileFullPath ">" StrLower(argStr)
         exeFile.Run(argStr, metaKeyFlags)
       } else {
-        mapKey := fileFullPath ">" storedArgs
+        mapKey := fileFullPath ">" StrLower(storedArgs)
         exeFile.Run(storedArgs, metaKeyFlags)
       }
       if (this.exeFileHistoriesAMap.Has(mapKey)) {
@@ -151,6 +151,7 @@ class ClassLauncher {
       } else {
         exeFileHistory := ClassExeFileHistory(exeFile, argStr)
       }
+      exeFileHistory.argStr := argStr
       exeFileHistory.executedAt := FormatTime(A_Now, "yyyyMMddHHmmss")
       this.exeFileHistoriesAMap.Push(mapKey, exeFileHistory)
       this.exeFileHistoriesAMap.Sort("N R", "executedAt")
@@ -403,9 +404,9 @@ class ClassLauncher {
       return
     }
     focusedRowNumber := this.listView.GetNext(0, "F") ; Find the focused row.
-    if (thisHotkey == "Up" || thisHotkey == "^k") {
+    if (thisHotkey == "Up" || thisHotkey == "^k" || thisHotkey == "+Tab") {
       focusedRowNumber := Max(focusedRowNumber - 1, 1)
-    } else if (thisHotkey == "Down" || thisHotkey == "^j") {
+    } else if (thisHotkey == "Down" || thisHotkey == "^j" || thisHotkey == "Tab") {
       if (this.listView.GetText(focusedRowNumber) == this.keywordEdit.value) {
         focusedRowNumber := Min(focusedRowNumber + 1, this.listView.GetCount())
       } else { 

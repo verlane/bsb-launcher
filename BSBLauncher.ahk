@@ -71,7 +71,7 @@ KeyPressEvent(key) {
 
 HotIf
 
-WM_USER_CUSTOM := 0x0401
+WM_USER_CUSTOM := 0xBBB001
 OnMessage WM_USER_CUSTOM, CustomMsgHandler
 CustomMsgHandler(wParam, lParam, msg, hwnd) {
   if (wParam = 1) {

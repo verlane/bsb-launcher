@@ -71,8 +71,7 @@ KeyPressEvent(key) {
 
 HotIf
 
-WM_USER_CUSTOM := 0xBBB001
-OnMessage WM_USER_CUSTOM, CustomMsgHandler
+OnMessage 0xB901, CustomMsgHandler
 CustomMsgHandler(wParam, lParam, msg, hwnd) {
   if (wParam = 1) {
     KeyPressEvent("Up")

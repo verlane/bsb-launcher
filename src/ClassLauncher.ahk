@@ -47,7 +47,7 @@ class ClassLauncher {
     this.runButton := this.gui.Add("Button", "default w0 h0", "OK")
     this.runButton.OnEvent("Click", (*) => this.Submit())
 
-    this.listView := this.gui.Add("ListView", "x6 y64 h490 w606 +Grid -Hdr -Multi", ClassLauncher.LIST_VIEW_HEADER) ; TODO +Multi
+    this.listView := this.gui.Add("ListView", "x6 y64 h490 w606 +Grid -Hdr +Multi", ClassLauncher.LIST_VIEW_HEADER) ; TODO +Multi
     this.listView.SetFont("s12", "Segoe UI")
 
     ; Create an ImageList so that the ListView can display some icons:
@@ -176,32 +176,36 @@ class ClassLauncher {
 
   ; The user selected "Open" or "Properties" in the context menu.
   ContextMenuEvent(itemName, *) {
-    focusedRowNumber := this.listView.GetNext(0, "F")  ; Find the focused row.
-    if not focusedRowNumber  ; No row is focused.
-      return
-
-    currentRowNumber := focusedRowNumber + A_Index - 1
-    fileFullPath := this.listView.GetText(focusedRowNumber, ClassLauncher.LIST_VIEW_FILE_FULL_PATH_INDEX)
-    argStr := this.listView.GetText(focusedRowNumber, ClassLauncher.LIST_VIEW_ARGS_INDEX)
-    mapKey := fileFullPath ">" argStr
-    try {
-      exeFile := this.exeFilesAMap.Get(fileFullPath)
-      if (RegExMatch(itemName, "i)^([`+`-][0-9]+) Score$", &SubPat)) { ; User selected "Open" from the context menu.
-        exeFile.AddScore(SubPat[1])
-        this.FilterExeFiles(this.keywordEdit.value)
-        baseScore := ClassLauncher.ToIntOrZero(this.setting.Get("exeFiles", fileFullPath, "additionalScore"))
-        this.setting.Set("exeFiles", fileFullPath, "additionalScore", baseScore + Integer(SubPat[1]))
-        this.setting.Save()
-      } else if (InStr(itemName, "Delete from history")) {
-        this.exeFileHistoriesAMap.Delete(mapKey)
-        this.FilterExeFiles(this.keywordEdit.value)
-        this.setting.Set("exeFileHistories", this.exeFileHistoriesAMap.GetAll())
-        this.setting.Save()
-      } else {
-        exeFile.Properties()
+    focusedRowNumber := 0
+    Loop {
+      focusedRowNumber := this.listView.GetNext(focusedRowNumber)
+      if (!focusedRowNumber) { ; No row is focused.
+        if (InStr(itemName, "Delete from history")) {
+          this.FilterExeFiles(this.keywordEdit.value)
+        }
+        return
       }
-    } catch Error as err {
-      MsgBox("Could not perform requested action on " fileFullPath ".`nSpecifically: " err.Message)
+      fileFullPath := this.listView.GetText(focusedRowNumber, ClassLauncher.LIST_VIEW_FILE_FULL_PATH_INDEX)
+      argStr := this.listView.GetText(focusedRowNumber, ClassLauncher.LIST_VIEW_ARGS_INDEX)
+      mapKey := fileFullPath ">" argStr
+      try {
+        exeFile := this.exeFilesAMap.Get(fileFullPath)
+        if (RegExMatch(itemName, "i)^([`+`-][0-9]+) Score$", &SubPat)) { ; User selected "Open" from the context menu.
+          exeFile.AddScore(SubPat[1])
+          this.FilterExeFiles(this.keywordEdit.value)
+          baseScore := ClassLauncher.ToIntOrZero(this.setting.Get("exeFiles", fileFullPath, "additionalScore"))
+          this.setting.Set("exeFiles", fileFullPath, "additionalScore", baseScore + Integer(SubPat[1]))
+          this.setting.Save()
+        } else if (InStr(itemName, "Delete from history")) {
+          this.exeFileHistoriesAMap.Delete(mapKey)
+          this.setting.Set("exeFileHistories", this.exeFileHistoriesAMap.GetAll())
+          this.setting.Save()
+        } else {
+          exeFile.Properties()
+        }
+      } catch Error as err {
+        MsgBox("Could not perform requested action on " fileFullPath ".`nSpecifically: " err.Message)
+      }
     }
   }
 

@@ -237,7 +237,7 @@ class ClassLauncher {
         continue
       }
 
-      if fileExt ~= "i)\A(EXE|ICO|ANI|CUR|LNK)\z"
+      if fileExt ~= "i)\A(EXE|ICO|ANI|CUR|LNK|AHK|AHK2)\z"
       {
         ExtID := fileExt  ; Special ID as a placeholder.
         iconNumber := 0  ; Flag it as not found so that these types can each have a unique icon.
@@ -258,6 +258,7 @@ class ClassLauncher {
         ; especially for a folder containing hundreds of files:
         iconNumber := iconMap.Has(ExtID) ? iconMap[ExtID] : 0
       }
+
       if not iconNumber  ; There is not yet any icon for this extension, so load it.
       {
         ; Get the high-quality small-icon associated with this file extension:
@@ -355,8 +356,9 @@ class ClassLauncher {
     this.listView.Delete()
 
     try {
-      if (StrLen(needleKeyword) > 1) {
-        result := Format("{:.10f}", eval(needleKeyword))
+      formula := StrReplace(needleKeyword, ",", "")
+      if (StrLen(formula) > 1 && !RegExMatch(needleKeyword, "^,.+?")) {
+        result := Format("{:.10f}", eval(formula))
         result := RegExReplace(result, "0+$", "") ; replace 0.1000 to 0.1
         intValue := Integer(result)
         if (result == intValue) {

@@ -22,13 +22,16 @@ if (!A_IsCompiled) {
 
 SetWorkingDir A_ScriptDir
 
+; Create a folder for commands
 if (!FileExist(".\commands")) {
   DirCreate(".\commands")
-  FileAppend("", ".\commands\,ahk")
+  FileCopy(".\src\DefaultCommand.ahk", ".\commands\,.ahk")
+  FileCopy(".\src\SampleCommand.ahk", ".\commands\g.ahk")
+  FileCopy(".\src\DefaultFunctions.ahk", ".\commands\DefaultFunctions.ahk")
 }
 
 setting := ClassSetting("Settings.json")
-if not FileExist("Settings.json") {
+if (!FileExist("Settings.json")) {
   setting.Set("folders", [
     [".\commands", 20],
     [A_StartMenu, 0],

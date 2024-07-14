@@ -140,10 +140,10 @@ class ClassLauncher {
       argStr := this.keywordEdit.value.Split(" ").Slice(2).Join(" ")
 
       if (argStr) {
-        mapKey := fileFullPath ">" StrLower(argStr)
+        mapKey := fileFullPath ">" Trim(StrLower(argStr))
         exeFile.Run(argStr, metaKeyFlags)
       } else {
-        mapKey := fileFullPath ">" StrLower(storedArgs)
+        mapKey := fileFullPath ">" Trim(StrLower(storedArgs))
         exeFile.Run(storedArgs, metaKeyFlags)
       }
       if (this.exeFileHistoriesAMap.Has(mapKey)) {

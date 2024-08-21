@@ -158,7 +158,16 @@ class ClassLauncher {
       this.setting.Set("exeFileHistories", this.exeFileHistoriesAMap.Slice(1, 128))
       this.setting.Save()
     } catch Error as err {
-      MsgBox("Could not open " . fileFullPath . ".`nSpecifically: " . err.Message)
+      errorLog := "Error occurred at line " . err.Line . "`n"
+      errorLog .= "Error Message: " . err.Message . "`n"
+      errorLog .= "Error Type: " . err.What . "`n"
+      errorLog .= "Stack Trace:`n" . err.Stack . "`n"
+      
+      FileAppend(errorLog, A_ScriptDir . "\error_log.txt")
+      
+      MsgBox("Could not open " . fileFullPath . ".`n"
+           . "Specifically: " . err.Message . "`n"
+           . "Error details have been logged to error_log.txt")
     }
   }
 
@@ -297,7 +306,7 @@ class ClassLauncher {
     for exeFileHistoryMap in exeFileHistories {
       fileFullPath := exeFileHistoryMap["exeFile"]["fileFullPath"]
       argStr := exeFileHistoryMap["argStr"]
-      mapKey := fileFullPath ">" argStr
+      mapKey := fileFullPath ">" StrLower(argStr)
       if (this.exeFilesAMap.Has(fileFullPath)) {
         exeFile := this.exeFilesAMap.Get(fileFullPath)
         exeFileHistory := ClassExeFileHistory(exeFile, argStr)

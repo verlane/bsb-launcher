@@ -85,3 +85,10 @@ CustomMsgHandler(wParam, lParam, msg, hwnd) {
   }
   return 0
 }
+
+; 종료 시 호출될 함수 정의
+OnExit(Cleanup)
+Cleanup(exitCode, exitReason) {
+  setting.Save()
+  MsgBox "스크립트가 종료되었습니다.`n코드: " exitCode "`n이유: " exitReason
+}

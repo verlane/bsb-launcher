@@ -36,7 +36,7 @@ class ClassLauncher {
   }
 
   InitializeGui() {
-    this.gui := Gui("+OwnDialogs -Caption +Owner", "BSB Launcher 2024")
+    this.gui := Gui("-Caption +ToolWindow", "BSB Launcher 2024")
     this.gui.SetFont("s26", "Segoe UI")
     this.gui.OnEvent("Close", (*) => ExitApp())
     this.gui.OnEvent("Escape", (*) => this.EscKeyPressEvent())
@@ -119,6 +119,10 @@ class ClassLauncher {
     this.RunFile()
   }
 
+  GetMapKey(fileFullPath, argStr) {
+    return fileFullPath ">" Trim(StrLower(argStr))
+  }
+
   RunFile(*) {
     if (this.listView.GetText(1, ClassLauncher.LIST_VIEW_FILE_FULL_PATH_INDEX) == "eval") { ; for eval
       A_Clipboard := this.listView.GetText(1, 1)
@@ -140,10 +144,10 @@ class ClassLauncher {
       argStr := this.keywordEdit.value.Split(" ").Slice(2).Join(" ")
 
       if (argStr) {
-        mapKey := fileFullPath ">" Trim(StrLower(argStr))
+        mapKey := this.GetMapKey(fileFullPath, argStr)
         exeFile.Run(argStr, metaKeyFlags)
       } else {
-        mapKey := fileFullPath ">" Trim(StrLower(storedArgs))
+        mapKey := this.GetMapKey(fileFullPath, storedArgs)
         exeFile.Run(storedArgs, metaKeyFlags)
       }
       if (this.exeFileHistoriesAMap.Has(mapKey)) {
@@ -155,8 +159,8 @@ class ClassLauncher {
       exeFileHistory.executedAt := FormatTime(A_Now, "yyyyMMddHHmmss")
       this.exeFileHistoriesAMap.Push(mapKey, exeFileHistory)
       this.exeFileHistoriesAMap.Sort("N R", "executedAt")
-      this.setting.Set("exeFileHistories", this.exeFileHistoriesAMap.Slice(1, 128))
-      this.setting.Save()
+      this.setting.Set("exeFileHistories", this.exeFileHistoriesAMap.Slice(1, 65536))
+      ; this.setting.Save()
     } catch Error as err {
       errorLog := "Error occurred at line " . err.Line . "`n"
       errorLog .= "Error Message: " . err.Message . "`n"
@@ -196,7 +200,7 @@ class ClassLauncher {
       }
       fileFullPath := this.listView.GetText(focusedRowNumber, ClassLauncher.LIST_VIEW_FILE_FULL_PATH_INDEX)
       argStr := this.listView.GetText(focusedRowNumber, ClassLauncher.LIST_VIEW_ARGS_INDEX)
-      mapKey := fileFullPath ">" argStr
+      mapKey := this.GetMapKey(fileFullPath, argStr)
       try {
         exeFile := this.exeFilesAMap.Get(fileFullPath)
         if (RegExMatch(itemName, "i)^([`+`-][0-9]+) Score$", &SubPat)) { ; User selected "Open" from the context menu.
@@ -204,11 +208,11 @@ class ClassLauncher {
           this.FilterExeFiles(this.keywordEdit.value)
           baseScore := ClassLauncher.ToIntOrZero(this.setting.Get("exeFiles", fileFullPath, "additionalScore"))
           this.setting.Set("exeFiles", fileFullPath, "additionalScore", baseScore + Integer(SubPat[1]))
-          this.setting.Save()
+          ; this.setting.Save()
         } else if (InStr(itemName, "Delete from history")) {
           this.exeFileHistoriesAMap.Delete(mapKey)
           this.setting.Set("exeFileHistories", this.exeFileHistoriesAMap.GetAll())
-          this.setting.Save()
+          ; this.setting.Save()
         } else {
           exeFile.Properties()
         }
@@ -306,7 +310,7 @@ class ClassLauncher {
     for exeFileHistoryMap in exeFileHistories {
       fileFullPath := exeFileHistoryMap["exeFile"]["fileFullPath"]
       argStr := exeFileHistoryMap["argStr"]
-      mapKey := fileFullPath ">" StrLower(argStr)
+      mapKey := this.GetMapKey(fileFullPath, argStr)
       if (this.exeFilesAMap.Has(fileFullPath)) {
         exeFile := this.exeFilesAMap.Get(fileFullPath)
         exeFileHistory := ClassExeFileHistory(exeFile, argStr)

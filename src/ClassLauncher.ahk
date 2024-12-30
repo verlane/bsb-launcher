@@ -5,10 +5,12 @@ class ClassLauncher {
   static LIST_VIEW_HEADER_OPTIONS := ["485 Sort", "30 Center", "45", "40 Integer SortDesc", "0 SortDesc", "0", "0"]
   static LIST_VIEW_FILE_FULL_PATH_INDEX := ClassLauncher.LIST_VIEW_HEADER.Length
   static LIST_VIEW_ARGS_INDEX := ClassLauncher.LIST_VIEW_FILE_FULL_PATH_INDEX - 1
-  AddToListView(exeFile, listView) {
-    listView.Add("Icon" . exeFile.iconNumber, exeFile.nameNoExt . " " . exeFile.argStr, "a", exeFile.ext, exeFile.score, exeFile.executedAt, exeFile.argStr, exeFile.fileFullPath)
+
+  AddToListView(exeFile) {
+    this.listView.Add("Icon" . exeFile.iconNumber, exeFile.nameNoExt . " " . exeFile.argStr, "a", exeFile.ext, exeFile.score, exeFile.executedAt, exeFile.argStr, exeFile.fileFullPath)
   }
-  ModifyShortcuts(listView){
+
+  ModifyShortcuts(){
     keys := "abcdefghijklmnopqrstuvwxyz"
     Loop this.listView.GetCount() {
       if (A_Index > 9) {
@@ -325,7 +327,9 @@ class ClassLauncher {
       if (!isHistory && (this.exeFileHistoriesAMap.Has(exeFile.fileFullPath) || this.exeFileHistoriesAMap.Has(exeFile.fileFullPath . ">"))) {
         continue
       }
-
+      if (this.listView.GetCount() > 18) {
+        break
+      }
       needleKeywords := needleKeyword.Split(" ")
       command := ""
       if (needleKeywords.Length > 0) {
@@ -345,10 +349,7 @@ class ClassLauncher {
         addIt := true
       }
       if (addIt) {
-        this.AddToListView(exeFile, this.listView)
-      }
-      if (this.listView.GetCount() > 18) {
-        break
+        this.AddToListView(exeFile)
       }
     }
   }
@@ -398,7 +399,7 @@ class ClassLauncher {
       this.listView.ModifyCol(i, ClassLauncher.LIST_VIEW_HEADER_OPTIONS[i])
     }
 
-    this.ModifyShortcuts(this.listView)
+    this.ModifyShortcuts()
 
     this.listView.Modify(1, "Focus Select")
   }

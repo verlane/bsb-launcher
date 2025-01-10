@@ -15,6 +15,7 @@ Native.LoadModule(".\lib\ahk-json.dll", ["JSON"])
 #Include .\src\ClassExeFileHistory.ahk
 #Include .\src\ClassLauncher.ahk
 #Include .\src\ClassSetting.ahk
+#Include .\src\IME.ahk
 
 if (!A_IsCompiled) {
   TraySeticon(A_ScriptDir . "\BSBLauncher.ico")
@@ -48,10 +49,12 @@ launcher.LoadExeFileHistories()
 
 ^;:: {
   launcher.ShowAsCommandMode()
+  SetImeOff()
 }
 
 ^':: {
   launcher.Show()
+  SetImeOff()
 }
 
 HotIfWinActive(launcher.GetWindowTitle())
@@ -86,9 +89,8 @@ CustomMsgHandler(wParam, lParam, msg, hwnd) {
   return 0
 }
 
-; 종료 시 호출될 함수 정의
+; Saving settings on exit
 OnExit(Cleanup)
 Cleanup(exitCode, exitReason) {
   setting.Save()
-  MsgBox "스크립트가 종료되었습니다.`n코드: " exitCode "`n이유: " exitReason
 }

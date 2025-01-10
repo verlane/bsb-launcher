@@ -10,7 +10,7 @@ class ClassLauncher {
     this.listView.Add("Icon" . exeFile.iconNumber, exeFile.nameNoExt . " " . exeFile.argStr, "a", exeFile.ext, exeFile.score, exeFile.executedAt, exeFile.argStr, exeFile.fileFullPath)
   }
 
-  ModifyShortcuts(){
+  ModifyShortcuts() {
     keys := "abcdefghijklmnopqrstuvwxyz"
     Loop this.listView.GetCount() {
       if (A_Index > 9) {
@@ -85,6 +85,7 @@ class ClassLauncher {
 
   ShowAsCommandMode() {
     this.gui.Show("w620 h562")
+    WinSetTransparent 200, "A"
     if (this.keywordEdit.Value.RegExMatch("i)^" . ClassLauncher.COMMAND_MODE_PREFIX . "+")) {
       this.FilterExeFiles(ClassLauncher.COMMAND_MODE_PREFIX)
       this.keywordEdit.Focus()
@@ -99,6 +100,7 @@ class ClassLauncher {
 
   Show(keyword := "") {
     this.gui.Show("w620 h562")
+    WinSetTransparent 200, "A"
     if (keyword) {
       this.keywordEdit.Value := keyword
       this.keywordEdit.Focus()
@@ -168,12 +170,12 @@ class ClassLauncher {
       errorLog .= "Error Message: " . err.Message . "`n"
       errorLog .= "Error Type: " . err.What . "`n"
       errorLog .= "Stack Trace:`n" . err.Stack . "`n"
-      
+
       FileAppend(errorLog, A_ScriptDir . "\error_log.txt")
-      
+
       MsgBox("Could not open " . fileFullPath . ".`n"
-           . "Specifically: " . err.Message . "`n"
-           . "Error details have been logged to error_log.txt")
+        . "Specifically: " . err.Message . "`n"
+        . "Error details have been logged to error_log.txt")
     }
   }
 
@@ -287,13 +289,16 @@ class ClassLauncher {
           ; Add the HICON directly to the small-icon and large-icon lists.
           ; Below uses +1 to convert the returned index from zero-based to one-based:
           iconNumber := DllCall("ImageList_ReplaceIcon", "Ptr", this.imageListID1, "Int", -1, "Ptr", hIcon) + 1
-          DllCall("ImageList_ReplaceIcon", "Ptr", this.imageListID2, "Int", -1, "Ptr", hIcon)
+          ; DllCall("ImageList_ReplaceIcon", "Ptr", this.imageListID2, "Int", -1, "Ptr", hIcon)
           ; Now that it's been copied into the ImageLists, the original should be destroyed:
-          DllCall("DestroyIcon", "Ptr", hIcon)
+          ; DllCall("DestroyIcon", "Ptr", hIcon)
           ; Cache the icon to save memory and improve loading performance:
           iconMap[ExtID] := iconNumber
         }
       }
+
+      OutputDebug("AHK: " . A_LoopFileFullPath)
+      ; iconNumber := 0
 
       additionalScore := ClassLauncher.ToIntOrZero(this.setting.Get("exeFiles", A_LoopFileFullPath, "additionalScore"))
       score := baseScore + additionalScore
@@ -429,9 +434,9 @@ class ClassLauncher {
     } else if (thisHotkey == "Down" || thisHotkey == "^j" || thisHotkey == "Tab") {
       if (this.listView.GetText(focusedRowNumber) == this.keywordEdit.value) {
         focusedRowNumber := Min(focusedRowNumber + 1, this.listView.GetCount())
-      } else { 
+      } else {
         focusedRowNumber := Max(focusedRowNumber, 1)
-      } 
+      }
     } else if (thisHotkey == "!Enter" || thisHotkey == "!+Enter" || thisHotkey == "^m") {
       this.RunFile()
     }
@@ -439,10 +444,6 @@ class ClassLauncher {
     if (this.listView.GetCount() > 0) {
       this.listView.Modify(focusedRowNumber, "Focus Select")
       this.keywordEdit.value := this.listView.GetText(focusedRowNumber)
-      ; argStr := this.listView.GetText(focusedRowNumber, 2)
-      ; if (argStr) {
-      ;   this.keywordEdit.value := this.keywordEdit.value .  " " . argStr
-      ; }
     }
     this.keywordEdit.Focus()
   }

@@ -46,3 +46,35 @@ IME_Status(wParam, winTitle := "A") {
 
   return result
 }
+
+IsJapaneseIME() {
+  return IME_GET() == 1 && !(IME_GETConvMode() = 0 || IME_GETConvMode() = 1)
+}
+
+SetImeOn() {
+  if (IME_GET() == 1) {
+    return
+  }
+  SwitchIME()
+}
+
+SetImeOff() {
+  if (IME_GET() != 1) {
+    return
+  }
+  SwitchIME()
+}
+
+SwitchIME() {
+  imeGet := IME_GET()
+  imeGetConv := IME_GETConvMode()
+  if (imeGet = 1 && (imeGetConv = 0 || imeGetConv = 1)) { ; Korean
+    Send("{VK15}")
+  } else if (imeGet = 1 && (imeGetConv = 25 || imeGetConv = 9)) { ; Japanese
+    Send("!{SC029}")
+  } else if (imeGetConv = 0) { ; English on Korean
+    Send("{VK15}")
+  } else { ; English on Japanese
+    Send("!{SC029}")
+  }
+}

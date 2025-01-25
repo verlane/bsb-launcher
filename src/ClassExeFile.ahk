@@ -7,10 +7,11 @@ class ClassExeFile {
     this.score := score
     this.fileFullPath := fileFullPath
 
-    SplitPath fileFullPath, &name, &dir, &ext, &nameNoExt, &drive
+    SplitPath(fileFullPath, &name, &dir, &ext, &nameNoExt, &drive)
     this.nameNoExt := nameNoExt.Replace(" ", "`r") ; for params
     this.ext := ext
     this.name := name
+    this.dir := dir
   }
 
   AddScore(value) {
@@ -25,7 +26,7 @@ class ClassExeFile {
     } else {
       command := this.fileFullPath . " " . argStr
     }
-    Run(command)
+    Run(command, this.dir)
   }
 
   Properties() {

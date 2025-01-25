@@ -85,7 +85,7 @@ class ClassLauncher {
 
   ShowAsCommandMode() {
     this.gui.Show("w620 h562")
-    WinSetTransparent 200, "A"
+    WinSetTransparent 240, "A"
     if (this.keywordEdit.Value.RegExMatch("i)^" . ClassLauncher.COMMAND_MODE_PREFIX . "+")) {
       this.FilterExeFiles(ClassLauncher.COMMAND_MODE_PREFIX)
       this.keywordEdit.Focus()
@@ -100,7 +100,7 @@ class ClassLauncher {
 
   Show(keyword := "") {
     this.gui.Show("w620 h562")
-    WinSetTransparent 200, "A"
+    WinSetTransparent 240, "A"
     if (keyword) {
       this.keywordEdit.Value := keyword
       this.keywordEdit.Focus()

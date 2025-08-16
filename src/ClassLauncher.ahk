@@ -249,7 +249,7 @@ class ClassLauncher {
       ; such as dashes. This unique ID method also performs better because finding an item
       ; in the array does not require search-loop.
       SplitPath(fileName, , , &fileExt)  ; Get the file's extension.
-      if not fileExt ~= "i)\A(EXE|BAT|LNK|AHK|AHK2)\z"
+      if not fileExt ~= "i)\A(EXE|BAT|CMD|LNK|AHK|AHK2)\z"
       {
         continue
       }
@@ -371,12 +371,44 @@ class ClassLauncher {
     }
   }
 
+  SpaceToPlus(str) {
+    result := ""
+    parenLevel := 0
+
+    ; Loop through each character in the string
+    loop parse, str
+    {
+        char := A_LoopField
+
+        ; Track the current level of parentheses
+        if (char = "(")
+            parenLevel++
+        else if (char = ")")
+            parenLevel--
+
+        ; Mark characters inside parentheses to exclude them from replacement
+        if (parenLevel > 0)
+            result .= "¶" . char  ; Temporary marker for characters inside parentheses
+        else
+            result .= char
+    }
+
+    ; Add " + " between numbers that are separated by whitespace and outside parentheses
+    result := RegExReplace(result, "(\d)\s+(?=\d)", "$1 + ")
+
+    ; Remove temporary markers and restore the original content inside parentheses
+    result := StrReplace(result, "¶")
+
+    return result
+  }
+
   FilterExeFiles(needleKeyword := "") {
     this.listView.Delete()
 
     try {
       formula := StrReplace(needleKeyword, ",", "")
       if (StrLen(formula) > 1 && !RegExMatch(needleKeyword, "^,.+?")) {
+        formula := this.SpaceToPlus(formula)
         result := Format("{:.10f}", eval(formula))
         result := RegExReplace(result, "0+$", "") ; replace 0.1000 to 0.1
         intValue := Integer(result)

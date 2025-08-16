@@ -1,4 +1,4 @@
-﻿/*
+﻿  /*
 	Name: Misc.ahk
 	Version 0.3 (03.08.23)
 	Created: 26.08.22

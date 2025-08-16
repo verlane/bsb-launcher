@@ -51,6 +51,10 @@ IsJapaneseIME() {
   return IME_GET() == 1 && !(IME_GETConvMode() = 0 || IME_GETConvMode() = 1)
 }
 
+IsKoreanIME() {
+  return IME_GET() == 1 && (IME_GETConvMode() = 0 || IME_GETConvMode() = 1)
+}
+
 SetImeOn() {
   if (IME_GET() == 1) {
     return
@@ -63,6 +67,11 @@ SetImeOff() {
     return
   }
   SwitchIME()
+  Sleep(10)
+  if (IME_GET() == 1) { ; Avoiding Chrome input form bug
+    Sleep(100)
+    SwitchIME()
+  }
 }
 
 SwitchIME() {

@@ -29,7 +29,10 @@ class ClassArrayMap {
   }
 
   Get(mapKey) {
-    return this.objectsMap[mapKey]
+    if (this.objectsMap.has(mapKey)) {
+      return this.objectsMap[mapKey]
+    }
+    return ""
   }
 
   GetAll() {

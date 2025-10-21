@@ -13,6 +13,7 @@ Native.LoadModule(".\lib\ahk-json.dll", ["JSON"])
 #Include .\src\ClassArrayMap.ahk
 #Include .\src\ClassExeFile.ahk
 #Include .\src\ClassExeFileHistory.ahk
+#Include .\src\ClassFileCache.ahk
 #Include .\src\ClassLauncher.ahk
 #Include .\src\ClassSetting.ahk
 #Include .\src\IME.ahk
@@ -67,7 +68,7 @@ Hotkey "^j", KeyPressEvent
 Hotkey "^m", KeyPressEvent
 Hotkey "!Enter", KeyPressEvent
 Hotkey "!+Enter", KeyPressEvent
-Hotkey "^r", (*) => Reload()
+Hotkey "^r", (*) => launcher.RefreshCache()
 Hotkey "F5", (*) => Reload()
 
 KeyPressEvent(key) {
@@ -89,8 +90,9 @@ CustomMsgHandler(wParam, lParam, msg, hwnd) {
   return 0
 }
 
-; Saving settings on exit
+; Saving settings and cache on exit
 OnExit(Cleanup)
 Cleanup(exitCode, exitReason) {
   setting.Save()
+  launcher.SaveCache()
 }

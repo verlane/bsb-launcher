@@ -33,6 +33,8 @@ class ClassLauncher {
     this.exeFilesAMap := ClassArrayMap()
     this.exeFileHistoriesAMap := ClassArrayMap()
     this.setting := setting
+    this.fileCache := ClassFileCache()
+    this.isLoading := false
     this.InitializeGui()
     this.FilterExeFiles()
   }
@@ -226,84 +228,78 @@ class ClassLauncher {
     }
   }
 
-  LoadFolder(folder, baseScore := 0) {
-    static iconMap := Map()
-
-    if not folder  ; The user canceled the dialog.
+  LoadFolder(folder, baseScore := 0, forceRefresh := false) {
+    if not folder
       return
 
-    ; Check if the last character of the folder name is a backslash, which happens for root
-    ; directories such as C:\. If it is, remove it to prevent a double-backslash later on.
     if SubStr(folder, -1, 1) = "\"
-      folder := SubStr(folder, 1, -1)  ; Remove the trailing backslash.
+      folder := SubStr(folder, 1, -1)
 
-    ; Calculate buffer size required for SHFILEINFO structure.
     sfi_size := A_PtrSize + 688
     sfi := Buffer(sfi_size)
 
     Loop Files, folder "\*", "R"
     {
-      fileName := A_LoopFilePath  ; Must save it to a writable variable for use below.
+      fileName := A_LoopFilePath
 
-      ; Build a unique extension ID to avoid characters that are illegal in variable names,
-      ; such as dashes. This unique ID method also performs better because finding an item
-      ; in the array does not require search-loop.
-      SplitPath(fileName, , , &fileExt)  ; Get the file's extension.
+      SplitPath(fileName, , , &fileExt)
       if not fileExt ~= "i)\A(EXE|BAT|CMD|LNK|AHK|AHK2)\z"
       {
         continue
       }
 
+      ; Check cache first
+      if (!forceRefresh) {
+        cachedInfo := this.fileCache.GetFileInfo(A_LoopFileFullPath)
+        if (cachedInfo) {
+          ; Use cached data
+          iconNumber := cachedInfo["iconNumber"]
+          score := cachedInfo["score"]
+          exeFile := ClassExeFile(iconNumber, score, A_LoopFileFullPath)
+          this.exeFilesAMap.Push(A_LoopFileFullPath, exeFile)
+          continue
+        }
+      }
+
+      ; Not in cache or force refresh - load icon
       if fileExt ~= "i)\A(EXE|ICO|ANI|CUR|LNK|AHK|AHK2)\z"
       {
-        ExtID := fileExt  ; Special ID as a placeholder.
-        iconNumber := 0  ; Flag it as not found so that these types can each have a unique icon.
+        ExtID := fileExt
+        iconNumber := 0
       }
-      else  ; Some other extension/file-type, so calculate its unique ID.
+      else
       {
-        ExtID := 0  ; Initialize to handle extensions that are shorter than others.
-        Loop 7   ; Limit the extension to 7 characters so that it fits in a 64-bit value.
+        ExtID := 0
+        Loop 7
         {
           ExtChar := SubStr(fileExt, A_Index, 1)
-          if not ExtChar  ; No more characters.
+          if not ExtChar
             break
-          ; Derive a Unique ID by assigning a different bit position to each character:
           ExtID := ExtID | (Ord(ExtChar) << (8 * (A_Index - 1)))
         }
-        ; Check if this file extension already has an icon in the ImageLists. If it does,
-        ; several calls can be avoided and loading performance is greatly improved,
-        ; especially for a folder containing hundreds of files:
-        iconNumber := iconMap.Has(ExtID) ? iconMap[ExtID] : 0
+        iconNumber := this.fileCache.GetIconNumber(ExtID)
       }
 
-      if not iconNumber  ; There is not yet any icon for this extension, so load it.
+      if not iconNumber
       {
-        ; Get the high-quality small-icon associated with this file extension:
         if not DllCall("Shell32\SHGetFileInfoW", "Str", fileName
-          , "Uint", 0, "Ptr", sfi, "UInt", sfi_size, "UInt", 0x101)  ; 0x101 is SHGFI_ICON+SHGFI_SMALLICON
-          iconNumber := 9999999  ; Set it out of bounds to display a blank icon.
-        else ; Icon successfully loaded.
+          , "Uint", 0, "Ptr", sfi, "UInt", sfi_size, "UInt", 0x101)
+          iconNumber := 9999999
+        else
         {
-          ; Extract the hIcon member from the structure:
           hIcon := NumGet(sfi, 0, "Ptr")
-          ; Add the HICON directly to the small-icon and large-icon lists.
-          ; Below uses +1 to convert the returned index from zero-based to one-based:
           iconNumber := DllCall("ImageList_ReplaceIcon", "Ptr", this.imageListID1, "Int", -1, "Ptr", hIcon) + 1
-          ; DllCall("ImageList_ReplaceIcon", "Ptr", this.imageListID2, "Int", -1, "Ptr", hIcon)
-          ; Now that it's been copied into the ImageLists, the original should be destroyed:
-          ; DllCall("DestroyIcon", "Ptr", hIcon)
-          ; Cache the icon to save memory and improve loading performance:
-          iconMap[ExtID] := iconNumber
+          this.fileCache.SetIconNumber(ExtID, iconNumber)
         }
       }
-
-      OutputDebug("AHK: " . A_LoopFileFullPath)
-      ; iconNumber := 0
 
       additionalScore := ClassLauncher.ToIntOrZero(this.setting.Get("exeFiles", A_LoopFileFullPath, "additionalScore"))
       score := baseScore + additionalScore
       exeFile := ClassExeFile(iconNumber, score, A_LoopFileFullPath)
       this.exeFilesAMap.Push(A_LoopFileFullPath, exeFile)
+
+      ; Cache the file info
+      this.fileCache.SetFileInfo(A_LoopFileFullPath, iconNumber, score)
     }
     this.exeFilesAMap.Sort("N R", "Score")
   }
@@ -393,8 +389,14 @@ class ClassLauncher {
             result .= char
     }
 
-    ; Add " + " between numbers that are separated by whitespace and outside parentheses
-    result := RegExReplace(result, "(\d)\s+(?=\d)", "$1 + ")
+    ; Keep operators and numbers, replace everything else with space
+    result := RegExReplace(result, "[^\d\+\-\*\/\.() ]", " ")
+
+    ; Add " + " between numbers that are separated ONLY by whitespace (no operators)
+    ; This regex checks if there's only whitespace between numbers
+    while RegExMatch(result, "(\d+\.?\d*)\s+(\d+\.?\d*)", &match) {
+        result := StrReplace(result, match[0], match[1] . " + " . match[2], , , 1)
+    }
 
     ; Remove temporary markers and restore the original content inside parentheses
     result := StrReplace(result, "¶")
@@ -408,16 +410,22 @@ class ClassLauncher {
     try {
       formula := StrReplace(needleKeyword, ",", "")
       if (StrLen(formula) > 1 && !RegExMatch(needleKeyword, "^,.+?")) {
-        formula := this.SpaceToPlus(formula)
-        result := Format("{:.10f}", eval(formula))
-        result := RegExReplace(result, "0+$", "") ; replace 0.1000 to 0.1
-        intValue := Integer(result)
-        if (result == intValue) {
-          result := intValue
-          result := RegExReplace(result, "(\d)(?=(\d{3})+(?!\d))", "$1,")
+        ; Check if it starts with a valid math character first
+        if (RegExMatch(Trim(formula), "^[\d\-~!\x28]")) {
+          formula := this.SpaceToPlus(formula)
+          ; Check if the formula is a valid math expression
+          if (eval(formula, true)) {
+            result := Format("{:.10f}", eval(formula))
+            result := RegExReplace(result, "0+$", "") ; replace 0.1000 to 0.1
+            intValue := Integer(result)
+            if (result == intValue) {
+              result := intValue
+              result := RegExReplace(result, "(\d)(?=(\d{3})+(?!\d))", "$1,")
+            }
+            this.listView.Add(, result, , , , , , "eval")
+            return
+          }
         }
-        this.listView.Add(, result, , , , , , "eval")
-        return
       }
     } catch {
     }
@@ -439,6 +447,37 @@ class ClassLauncher {
     this.ModifyShortcuts()
 
     this.listView.Modify(1, "Focus Select")
+  }
+
+  RefreshCache(folders := "") {
+    ; Clear current data
+    this.exeFilesAMap := ClassArrayMap()
+    this.fileCache.Clear()
+
+    ; Reload folders with force refresh
+    if (!folders) {
+      folders := this.setting.Get("folders")
+    }
+
+    for folderArray in folders {
+      this.LoadFolder(folderArray[1], folderArray[2], true)
+    }
+
+    ; Save cache
+    this.fileCache.Save()
+
+    ; Refresh display
+    this.FilterExeFiles(this.keywordEdit.value)
+
+    ; Show notification
+    cacheCount := this.fileCache.GetCachedFilesCount()
+    iconCount := this.fileCache.GetCachedIconsCount()
+    ToolTip("Cache refreshed: " cacheCount " files, " iconCount " icons")
+    SetTimer(() => ToolTip(), -2000)
+  }
+
+  SaveCache() {
+    this.fileCache.Save()
   }
 
   EscKeyPressEvent(*) {

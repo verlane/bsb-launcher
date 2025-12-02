@@ -6,3 +6,4 @@ tmp
 *.ahk2
 Settings.json
 error_log.txt
+icon_cache.ini

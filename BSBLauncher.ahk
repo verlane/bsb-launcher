@@ -68,8 +68,8 @@ Hotkey "^j", KeyPressEvent
 Hotkey "^m", KeyPressEvent
 Hotkey "!Enter", KeyPressEvent
 Hotkey "!+Enter", KeyPressEvent
-Hotkey "^r", (*) => launcher.RefreshCache()
-Hotkey "F5", (*) => Reload()
+Hotkey "^r", (*) => Reload()
+Hotkey "F5", (*) => launcher.RefreshCache()
 
 KeyPressEvent(key) {
   launcher.KeyPressEvent(key)

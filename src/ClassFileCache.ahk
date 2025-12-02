@@ -1,123 +1,52 @@
-; File cache system for BSB Launcher
-; Caches file information and icons to improve loading performance
+; Icon cache system for BSB Launcher
+; Caches icon numbers to prevent expensive DllCall operations
 
 class ClassFileCache {
-  __New(cacheFilePath := "") {
-    this.cacheFilePath := cacheFilePath ? cacheFilePath : A_ScriptDir . "\file_cache.json"
-    this.iconCacheFilePath := A_ScriptDir . "\icon_cache.json"
-    this.cache := Map()
+  __New() {
+    this.iconCacheFilePath := A_ScriptDir . "\icon_cache.ini"
     this.iconCache := Map()
     this.Load()
   }
 
   Load() {
-    ; Load file cache
-    if FileExist(this.cacheFilePath) {
+    ; Load icon cache from INI file
+    if FileExist(this.iconCacheFilePath) {
       try {
-        cacheJson := FileRead(this.cacheFilePath)
-        cacheData := JSON.parse(cacheJson)
-
-        if (cacheData && cacheData.Has("files")) {
-          for filePath, fileInfo in cacheData["files"] {
-            this.cache[filePath] := fileInfo
+        Loop Read, this.iconCacheFilePath
+        {
+          line := Trim(A_LoopReadLine)
+          if (line && !InStr(line, "[") && InStr(line, "=")) {
+            parts := StrSplit(line, "=")
+            if (parts.Length == 2) {
+              extId := parts[1]
+              iconNum := Integer(parts[2])
+              this.iconCache[extId] := iconNum
+            }
           }
         }
       } catch as e {
         ; Cache file corrupted, ignore and start fresh
       }
     }
-
-    ; Load icon cache
-    if FileExist(this.iconCacheFilePath) {
-      try {
-        iconJson := FileRead(this.iconCacheFilePath)
-        iconData := JSON.parse(iconJson)
-
-        if (iconData && iconData.Has("icons")) {
-          for extId, iconNum in iconData["icons"] {
-            this.iconCache[extId] := iconNum
-          }
-        }
-      } catch as e {
-        ; Icon cache corrupted, ignore
-      }
-    }
   }
 
   Save() {
-    ; Save file cache
-    cacheData := Map()
-    cacheData["lastSaved"] := FormatTime(A_Now, "yyyyMMddHHmmss")
-    cacheData["files"] := Map()
-
-    for filePath, fileInfo in this.cache {
-      cacheData["files"][filePath] := fileInfo
-    }
-
+    ; Save icon cache to INI file
     try {
-      cacheJson := JSON.stringify(cacheData, 2)
-      FileDelete(this.cacheFilePath)
-      FileAppend(cacheJson, this.cacheFilePath, "UTF-8")
+      if FileExist(this.iconCacheFilePath) {
+        FileDelete(this.iconCacheFilePath)
+      }
+
+      output := "[IconCache]`n"
+      output .= "; Generated: " . FormatTime(A_Now, "yyyy-MM-dd HH:mm:ss") . "`n"
+
+      for extId, iconNum in this.iconCache {
+        output .= extId . "=" . iconNum . "`n"
+      }
+
+      FileAppend(output, this.iconCacheFilePath, "UTF-8")
     } catch as e {
       ; Failed to save cache
-    }
-
-    ; Save icon cache
-    iconData := Map()
-    iconData["lastSaved"] := FormatTime(A_Now, "yyyyMMddHHmmss")
-    iconData["icons"] := Map()
-
-    for extId, iconNum in this.iconCache {
-      iconData["icons"][extId] := iconNum
-    }
-
-    try {
-      iconJson := JSON.stringify(iconData, 2)
-      FileDelete(this.iconCacheFilePath)
-      FileAppend(iconJson, this.iconCacheFilePath, "UTF-8")
-    } catch as e {
-      ; Failed to save icon cache
-    }
-  }
-
-  GetFileInfo(filePath) {
-    if (!this.cache.Has(filePath)) {
-      return false
-    }
-
-    cachedInfo := this.cache[filePath]
-
-    ; Check if file still exists and hasn't been modified
-    if (!FileExist(filePath)) {
-      this.cache.Delete(filePath)
-      return false
-    }
-
-    try {
-      currentModified := FileGetTime(filePath, "M")
-      if (cachedInfo["modified"] != currentModified) {
-        ; File has been modified, invalidate cache
-        this.cache.Delete(filePath)
-        return false
-      }
-    } catch {
-      this.cache.Delete(filePath)
-      return false
-    }
-
-    return cachedInfo
-  }
-
-  SetFileInfo(filePath, iconNumber, score) {
-    try {
-      modified := FileGetTime(filePath, "M")
-      this.cache[filePath] := Map(
-        "iconNumber", iconNumber,
-        "score", score,
-        "modified", modified
-      )
-    } catch {
-      ; Cannot get file time, skip caching
     }
   }
 
@@ -130,16 +59,12 @@ class ClassFileCache {
   }
 
   Clear() {
-    this.cache := Map()
     this.iconCache := Map()
     try {
-      FileDelete(this.cacheFilePath)
-      FileDelete(this.iconCacheFilePath)
+      if FileExist(this.iconCacheFilePath) {
+        FileDelete(this.iconCacheFilePath)
+      }
     }
-  }
-
-  GetCachedFilesCount() {
-    return this.cache.Count
   }
 
   GetCachedIconsCount() {

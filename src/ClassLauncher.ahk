@@ -34,7 +34,6 @@ class ClassLauncher {
     this.exeFileHistoriesAMap := ClassArrayMap()
     this.setting := setting
     this.fileCache := ClassFileCache()
-    this.isLoading := false
     this.InitializeGui()
     this.FilterExeFiles()
   }
@@ -248,20 +247,7 @@ class ClassLauncher {
         continue
       }
 
-      ; Check cache first
-      if (!forceRefresh) {
-        cachedInfo := this.fileCache.GetFileInfo(A_LoopFileFullPath)
-        if (cachedInfo) {
-          ; Use cached data
-          iconNumber := cachedInfo["iconNumber"]
-          score := cachedInfo["score"]
-          exeFile := ClassExeFile(iconNumber, score, A_LoopFileFullPath)
-          this.exeFilesAMap.Push(A_LoopFileFullPath, exeFile)
-          continue
-        }
-      }
-
-      ; Not in cache or force refresh - load icon
+      ; Determine ExtID for icon caching
       if fileExt ~= "i)\A(EXE|ICO|ANI|CUR|LNK|AHK|AHK2)\z"
       {
         ExtID := fileExt
@@ -277,9 +263,11 @@ class ClassLauncher {
             break
           ExtID := ExtID | (Ord(ExtChar) << (8 * (A_Index - 1)))
         }
-        iconNumber := this.fileCache.GetIconNumber(ExtID)
+        ; Check icon cache (unless force refresh)
+        iconNumber := forceRefresh ? 0 : this.fileCache.GetIconNumber(ExtID)
       }
 
+      ; Load icon if not cached
       if not iconNumber
       {
         if not DllCall("Shell32\SHGetFileInfoW", "Str", fileName
@@ -289,6 +277,7 @@ class ClassLauncher {
         {
           hIcon := NumGet(sfi, 0, "Ptr")
           iconNumber := DllCall("ImageList_ReplaceIcon", "Ptr", this.imageListID1, "Int", -1, "Ptr", hIcon) + 1
+          ; Cache the icon number
           this.fileCache.SetIconNumber(ExtID, iconNumber)
         }
       }
@@ -297,9 +286,6 @@ class ClassLauncher {
       score := baseScore + additionalScore
       exeFile := ClassExeFile(iconNumber, score, A_LoopFileFullPath)
       this.exeFilesAMap.Push(A_LoopFileFullPath, exeFile)
-
-      ; Cache the file info
-      this.fileCache.SetFileInfo(A_LoopFileFullPath, iconNumber, score)
     }
     this.exeFilesAMap.Sort("N R", "Score")
   }
@@ -390,7 +376,8 @@ class ClassLauncher {
     }
 
     ; Keep operators and numbers, replace everything else with space
-    result := RegExReplace(result, "[^\d\+\-\*\/\.() ]", " ")
+    ; Preserve ¶ marker for parentheses content
+    result := RegExReplace(result, "[^\d\+\-\*\/\.() ¶]", " ")
 
     ; Add " + " between numbers that are separated ONLY by whitespace (no operators)
     ; This regex checks if there's only whitespace between numbers
@@ -470,9 +457,8 @@ class ClassLauncher {
     this.FilterExeFiles(this.keywordEdit.value)
 
     ; Show notification
-    cacheCount := this.fileCache.GetCachedFilesCount()
     iconCount := this.fileCache.GetCachedIconsCount()
-    ToolTip("Cache refreshed: " cacheCount " files, " iconCount " icons")
+    ToolTip("Cache refreshed: " iconCount " icons cached")
     SetTimer(() => ToolTip(), -2000)
   }
 

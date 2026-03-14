@@ -61,6 +61,11 @@ class ClassLauncher {
     this.listView.SetImageList(this.imageListID1)
     this.listView.SetImageList(this.imageListID2)
 
+    ; Load calculator icon for eval results
+    this.evalIconNumber := IL_Add(this.imageListID1, A_WinDir "\System32\calc.exe", 1)
+    if (!this.evalIconNumber)
+      this.evalIconNumber := IL_Add(this.imageListID1, "shell32.dll", 1)
+
     ; Apply control events:
     this.listView.OnEvent("Click", ObjBindMethod(this, "HandleClick"))
     this.listView.OnEvent("DoubleClick", ObjBindMethod(this, "RunFile"))
@@ -146,6 +151,10 @@ class ClassLauncher {
     try {
       this.Hide()
       exeFile := this.exeFilesAMap.Get(fileFullPath)
+      if (!exeFile || Type(exeFile) = "String") {
+        MsgBox("File not found: " . fileFullPath . "`nPlease refresh cache (F5).")
+        return
+      }
       argStr := this.keywordEdit.value.Split(" ").Slice(2).Join(" ")
 
       if (argStr) {
@@ -182,6 +191,7 @@ class ClassLauncher {
 
   HandleClick(*) {
     focusedRowNumber := this.listView.GetNext(0, "F")
+    CancelImeComposition(this.keywordEdit.HWND)
     this.keywordEdit.value := this.listView.GetText(focusedRowNumber, 1)
   }
 
@@ -227,9 +237,13 @@ class ClassLauncher {
     }
   }
 
-  LoadFolder(folder, baseScore := 0, forceRefresh := false) {
+  LoadFolder(folder, baseScore := 0, forceRefresh := false, targetMap?) {
     if not folder
       return
+
+    if (!IsSet(targetMap)) {
+      targetMap := this.exeFilesAMap
+    }
 
     if SubStr(folder, -1, 1) = "\"
       folder := SubStr(folder, 1, -1)
@@ -285,9 +299,9 @@ class ClassLauncher {
       additionalScore := ClassLauncher.ToIntOrZero(this.setting.Get("exeFiles", A_LoopFileFullPath, "additionalScore"))
       score := baseScore + additionalScore
       exeFile := ClassExeFile(iconNumber, score, A_LoopFileFullPath)
-      this.exeFilesAMap.Push(A_LoopFileFullPath, exeFile)
+      targetMap.Push(A_LoopFileFullPath, exeFile)
     }
-    this.exeFilesAMap.Sort("N R", "Score")
+    targetMap.Sort("N R", "Score")
   }
 
   LoadExeFileHistories() {
@@ -409,7 +423,7 @@ class ClassLauncher {
               result := intValue
               result := RegExReplace(result, "(\d)(?=(\d{3})+(?!\d))", "$1,")
             }
-            this.listView.Add(, result, , , , , , "eval")
+            this.listView.Add("Icon" . this.evalIconNumber, result, , , , , , "eval")
             return
           }
         }
@@ -437,18 +451,25 @@ class ClassLauncher {
   }
 
   RefreshCache(folders := "") {
-    ; Clear current data
-    this.exeFilesAMap := ClassArrayMap()
+    ; Create new map first (atomic replacement pattern)
+    newExeFilesAMap := ClassArrayMap()
     this.fileCache.Clear()
 
-    ; Reload folders with force refresh
+    ; Reload folders with force refresh into new map
     if (!folders) {
       folders := this.setting.Get("folders")
     }
 
     for folderArray in folders {
-      this.LoadFolder(folderArray[1], folderArray[2], true)
+      this.LoadFolder(folderArray[1], folderArray[2], true, newExeFilesAMap)
     }
+
+    ; Atomic replacement - only swap after all data is loaded
+    this.exeFilesAMap := newExeFilesAMap
+
+    ; Refresh histories to remove entries for files that no longer exist
+    this.exeFileHistoriesAMap := ClassArrayMap()
+    this.LoadExeFileHistories()
 
     ; Save cache
     this.fileCache.Save()
@@ -500,6 +521,7 @@ class ClassLauncher {
     this.listView.Modify(0, "-Select")
     if (this.listView.GetCount() > 0) {
       this.listView.Modify(focusedRowNumber, "Focus Select")
+      CancelImeComposition(this.keywordEdit.HWND)
       this.keywordEdit.value := this.listView.GetText(focusedRowNumber)
     }
     this.keywordEdit.Focus()

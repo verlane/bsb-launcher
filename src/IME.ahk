@@ -87,3 +87,39 @@ SwitchIME() {
     Send("!{SC029}")
   }
 }
+
+CancelImeComposition(targetHwnd) {
+  static NI_COMPOSITIONSTR := 0x0015
+  static CPS_CANCEL := 0x0004
+  static GCS_COMPSTR := 0x0008
+  static WM_KEYDOWN := 0x0100
+  static WM_KEYUP := 0x0101
+  static VK_ESCAPE := 0x1B
+
+  if (!targetHwnd) {
+    return false
+  }
+
+  hIMC := DllCall("imm32\ImmGetContext", "Ptr", targetHwnd, "Ptr")
+  if (!hIMC) {
+    return false
+  }
+
+  try {
+    compositionByteLength := DllCall("imm32\ImmGetCompositionStringW", "Ptr", hIMC, "UInt", GCS_COMPSTR, "Ptr", 0, "UInt", 0, "Int")
+    if (compositionByteLength <= 0) {
+      return false
+    }
+
+    if (DllCall("imm32\ImmNotifyIME", "Ptr", hIMC, "UInt", NI_COMPOSITIONSTR, "UInt", CPS_CANCEL, "UInt", 0)) {
+      return true
+    }
+  } finally {
+    DllCall("imm32\ImmReleaseContext", "Ptr", targetHwnd, "Ptr", hIMC)
+  }
+
+  PostMessage(WM_KEYDOWN, VK_ESCAPE, 0, , "ahk_id " targetHwnd)
+  PostMessage(WM_KEYUP, VK_ESCAPE, 0, , "ahk_id " targetHwnd)
+  Sleep(10)
+  return true
+}
